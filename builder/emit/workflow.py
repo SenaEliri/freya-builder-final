@@ -162,6 +162,20 @@ def router(name, transitions):
             "passthrough_default_transition": transitions[-1]["target_node"], "transitions": transitions}
 
 
+def literal_ending(nodes, name, policy, situation, text, close):
+    """A fixed ending for a failure path: speak `text`, close_call with the situation's literal outcome and reason
+    (retried once), hang up. Needs no code step and no route variable."""
+    o, r = policy["outcomes"].get(situation) or policy["outcomes"]["unclear"]
+    body = {"customer_id": "{{customer_id}}", "outcome": o}
+    if r:
+        body["reason"] = r
+    nodes[name] = conv(name, text=text, passthrough=True, to=name + "_close")
+    nodes[name + "_close"] = api_node(name + "_close", close, body,
+                                      [when_true(name + "_close_response.data.ok", name + "_end"), always(name + "_close_r")])
+    nodes[name + "_close_r"] = api_node(name + "_close_r", close, body, [always(name + "_end")])
+    nodes[name + "_end"] = end_node(name + "_end")
+
+
 def end_route(outcome, reason):
     return "end_" + san(outcome) + ("_r" if reason else "")
 
@@ -176,6 +190,7 @@ def build(policy, toolspec):
     close_by_final = [when("final_route", "equals", rn, "close" + rn[3:]) for rn in variants] + [always("close_default")]
     nodes = {}
     lines = policy["lines"]
+    close = T["close_call"]
     opening = tpl(lines["opening"])
     nodes["open"] = conv("open", text=opening, extraction=ex,
                          task="Say exactly this and nothing else: " + opening + " No tool call is allowed in this turn.")
@@ -227,76 +242,88 @@ def build(policy, toolspec):
                                 response_mapping=[{"path": "data.products", "variable": "account_products"}])
     nodes["account_r"] = api_node("account_r", T["get_account"], {"customer_id": "{{customer_id}}"}, [always("decide")],
                                   response_mapping=[{"path": "data.products", "variable": "account_products"}])
-    # write chains: c = clean (no failure yet), d = dirty (a write failed twice)
-    final_routes = by_final
+    # write chains: c = clean (no failure yet), d = dirty (a write failed twice). Both end at w_end, which needs no
+    # customer turn: any create_promise ok -> the promise ending; promises tried but none ok -> the precomputed
+    # all-failed ending (farewell_af, final_route/final_reason); notes only -> final_route.
+    promise_bye = "bye" + end_route(*policy["outcomes"]["promise"])[3:]
+    ok_conds = []
+    for k in (1, 2, 3):
+        for nm in ("wp%dc" % k, "wp%dcr" % k) + (("wp%dd" % k, "wp%ddr" % k) if k > 1 else ()):
+            for val in ("true", "True"):
+                ok_conds.append({"variable": nm + "_response.data.ok", "operator": "equals", "operand": val})
 
     def after_promise(k, v):
         nxt = []
         if k < 3:
             nxt.append(when("wp%d_on" % (k + 1), "equals", "yes", "wp%d%s" % (k + 1, v)))
         nxt.append(when("wn1_on", "equals", "yes", "wn1%s" % v))
-        return nxt + (final_routes if v == "c" else [always("after_fail")])
+        return nxt + [always("w_end")]
 
     def after_note(k, v):
         nxt = []
         if k < 3:
             nxt.append(when("wn%d_on" % (k + 1), "equals", "yes", "wn%d%s" % (k + 1, v)))
-        return nxt + (final_routes if v == "c" else [always("after_fail")])
+        return nxt + [always("w_end")]
+
+    def silent_router(name, transitions):
+        nx = conv(name, text="", passthrough=True)
+        nx["on_enter"] = {"type": "silent"}
+        nx["task_message"] = "Say nothing. No tool call is allowed in this turn."
+        nx["transitions"] = transitions
+        nx["passthrough_default_transition"] = transitions[-1]["target_node"]
+        return nx
 
     for v in ("c", "d"):
         for k in (1, 2, 3):
-            if v == "d" and k == 1:
-                # the dirty chain starts after product 1 failed; only its note writes are needed
-                nbody = {"customer_id": "{{customer_id}}", "product_id": "{{wn%d_pid}}" % k, "reason": "{{wn%d_reason}}" % k}
-                nodes["wn1d"] = api_node("wn1d", T["add_note"], nbody, [when_true("wn1d_response.data.ok", "wn1d_next"), always("wn1dr")])
-                nodes["wn1dr"] = api_node("wn1dr", T["add_note"], nbody, [always("wn1d_next")])
-                nx = conv("wn1d_next", text="", passthrough=True)
-                nx["on_enter"] = {"type": "silent"}
-                nx["task_message"] = "Say nothing. No tool call is allowed in this turn."
-                nx["transitions"] = after_note(1, "d")
-                nx["passthrough_default_transition"] = nx["transitions"][-1]["target_node"]
-                nodes["wn1d_next"] = nx
-                continue
-            body = {"customer_id": "{{customer_id}}", "product_id": "{{wp%d_pid}}" % k,
-                    "amount": "{{wp%d_amount}}" % k, "date": "{{wp%d_date}}" % k}
-            nodes["wp%d%s" % (k, v)] = api_node("wp%d%s" % (k, v), T["create_promise"], body,
-                                                [when_true("wp%d%s_response.data.ok" % (k, v), "wp%d%s_ok" % (k, v)),
-                                                 always("wp%d%sr" % (k, v))],
-                                                response_mapping=[{"path": "data.ok", "variable": "wp%d_res1" % k}])
-            nodes["wp%d%sr" % (k, v)] = api_node("wp%d%sr" % (k, v), T["create_promise"], body,
-                                                 [when_true("wp%d%sr_response.data.ok" % (k, v), "wp%d%s_ok" % (k, v)),
-                                                  always("wp%d_fail" % k)],
-                                                 response_mapping=[{"path": "data.ok", "variable": "wp%d_res2" % k}])
-            ok = conv("wp%d%s_ok" % (k, v), "say_wp%d_ok" % k, passthrough=True, to="__set_below__")
-            ok["transitions"] = after_promise(k, v)
-            ok["passthrough_default_transition"] = ok["transitions"][-1]["target_node"]
-            nodes["wp%d%s_ok" % (k, v)] = ok
             nbody = {"customer_id": "{{customer_id}}", "product_id": "{{wn%d_pid}}" % k, "reason": "{{wn%d_reason}}" % k}
             nodes["wn%d%s" % (k, v)] = api_node("wn%d%s" % (k, v), T["add_note"], nbody,
                                                 [when_true("wn%d%s_response.data.ok" % (k, v), "wn%d%s_next" % (k, v)),
                                                  always("wn%d%sr" % (k, v))])
             nodes["wn%d%sr" % (k, v)] = api_node("wn%d%sr" % (k, v), T["add_note"], nbody, [always("wn%d%s_next" % (k, v))])
-            nx = conv("wn%d%s_next" % (k, v), text="", passthrough=True)
-            nx["on_enter"] = {"type": "silent"}
-            nx["task_message"] = "Say nothing. No tool call is allowed in this turn."
-            nx["transitions"] = after_note(k, v)
-            nx["passthrough_default_transition"] = nx["transitions"][-1]["target_node"]
-            nodes["wn%d%s_next" % (k, v)] = nx
+            nodes["wn%d%s_next" % (k, v)] = silent_router("wn%d%s_next" % (k, v), after_note(k, v))
+            if v == "d" and k == 1:
+                continue  # the dirty chain starts after product 1 failed
+            body = {"customer_id": "{{customer_id}}", "product_id": "{{wp%d_pid}}" % k,
+                    "amount": "{{wp%d_amount}}" % k, "date": "{{wp%d_date}}" % k}
+            nodes["wp%d%s" % (k, v)] = api_node("wp%d%s" % (k, v), T["create_promise"], body,
+                                                [when_true("wp%d%s_response.data.ok" % (k, v), "wp%d%s_ok" % (k, v)),
+                                                 always("wp%d%sr" % (k, v))])
+            nodes["wp%d%sr" % (k, v)] = api_node("wp%d%sr" % (k, v), T["create_promise"], body,
+                                                 [when_true("wp%d%sr_response.data.ok" % (k, v), "wp%d%s_ok" % (k, v)),
+                                                  always("wp%d_fail" % k)])
+            ok = conv("wp%d%s_ok" % (k, v), "say_wp%d_ok" % k, passthrough=True, to="__set_below__")
+            ok["transitions"] = after_promise(k, v)
+            ok["passthrough_default_transition"] = ok["transitions"][-1]["target_node"]
+            nodes["wp%d%s_ok" % (k, v)] = ok
     for k in (1, 2, 3):
         f = conv("wp%d_fail" % k, "say_wp%d_fail" % k, passthrough=True)
-        f["transitions"] = after_promise(k, "d")
+        f["transitions"] = [when("wf_on", "equals", "yes", "wf%d" % k)] + after_promise(k, "d")
         f["passthrough_default_transition"] = f["transitions"][-1]["target_node"]
         nodes["wp%d_fail" % k] = f
-    nodes["after_fail"] = conv("after_fail", "say_after_fail", extraction=ex)
+        fbody = {"customer_id": "{{customer_id}}", "product_id": "{{wp%d_pid}}" % k, "reason": "{{wf_reason}}"}
+        nodes["wf%d" % k] = api_node("wf%d" % k, T["add_note"], fbody,
+                                     [when_true("wf%d_response.data.ok" % k, "wf%d_next" % k), always("wf%dr" % k)])
+        nodes["wf%dr" % k] = api_node("wf%dr" % k, T["add_note"], fbody, [always("wf%d_next" % k)])
+        nodes["wf%d_next" % k] = silent_router("wf%d_next" % k, after_promise(k, "d"))
+    nodes["w_end"] = silent_router("w_end", [{"target_node": promise_bye, "description": "a create_promise succeeded",
+                                              "condition": {"logic": "or", "conditions": ok_conds}},
+                                             when("wp1_on", "equals", "yes", "af_bye", "every create_promise failed twice")]
+                                   + by_final)
+    af = conv("af_bye", "farewell_af", passthrough=True, to="close_default")
+    af["transitions"] = close_by_final
+    af["passthrough_default_transition"] = "close_default"
+    nodes["af_bye"] = af
     # transfer and callback
     nodes["xfer"] = api_node("xfer", T["transfer_to_agent"], {"customer_id": "{{customer_id}}", "queue": "{{xfer_queue}}"},
                              [when_true("xfer_response.data.ok", "xfer_done"), always("xfer_r")])
     nodes["xfer_r"] = api_node("xfer_r", T["transfer_to_agent"], {"customer_id": "{{customer_id}}", "queue": "{{xfer_queue}}"},
-                               [when_true("xfer_r_response.data.ok", "xfer_done"), always("end_tech")])
+                               [when_true("xfer_r_response.data.ok", "xfer_done"), always("xfer_fail")])
+    literal_ending(nodes, "xfer_fail", policy, "service_error", lines["tech_problem"] + " " + lines["goodbye"], close)
     nodes["xfer_done"] = router("xfer_done", by_final)
     cbody = {"customer_id": "{{customer_id}}", "date": "{{cb_date}}", "time": "{{cb_time}}"}
     nodes["cb"] = api_node("cb", T["schedule_callback"], cbody, [when_true("cb_response.data.ok", "cb_done"), always("cb_r")])
-    nodes["cb_r"] = api_node("cb_r", T["schedule_callback"], cbody, [when_true("cb_r_response.data.ok", "cb_done"), always("end_tech")])
+    nodes["cb_r"] = api_node("cb_r", T["schedule_callback"], cbody, [when_true("cb_r_response.data.ok", "cb_done"), always("cb_fail")])
+    literal_ending(nodes, "cb_fail", policy, "no_callback", lines["tech_problem"] + " " + lines["goodbye"], close)
     nodes["cb_done"] = router("cb_done", by_final)
     nodes["v_failed"] = router("v_failed", by_final)
     # endings (L2, L6): fixed farewell first (never waits), then close_call as an engine-run call, then hang up.
@@ -307,14 +334,19 @@ def build(policy, toolspec):
         body = {"customer_id": "{{customer_id}}", "outcome": o}
         if has_r:
             body["reason"] = "{{final_reason}}"
-        nodes["close" + rn[3:]] = api_node("close" + rn[3:], close, body, [always(rn)])
+        # close_call is retried once when it fails (HTTP 500: nothing was recorded, the call may be repeated)
+        nodes["close" + rn[3:]] = api_node("close" + rn[3:], close, body,
+                                           [when_true("close%s_response.data.ok" % rn[3:], rn), always("close%s_r" % rn[3:])])
+        nodes["close%s_r" % rn[3:]] = api_node("close%s_r" % rn[3:], close, body, [always(rn)])
         nodes[rn] = end_node(rn)
     uo, ur = policy["outcomes"]["unclear"]
     dbody = {"customer_id": "{{customer_id}}", "outcome": uo}
     if ur:
         dbody["reason"] = ur
     nodes["bye_default"] = conv("bye_default", "farewell", passthrough=True, to="close_default")
-    nodes["close_default"] = api_node("close_default", close, dbody, [always("end_default")])
+    nodes["close_default"] = api_node("close_default", close, dbody,
+                                      [when_true("close_default_response.data.ok", "end_default"), always("close_default_r")])
+    nodes["close_default_r"] = api_node("close_default_r", close, dbody, [always("end_default")])
     nodes["end_default"] = end_node("end_default")
     nodes["end_tech"] = conv("end_tech", text=lines["tech_problem"] + " " + lines["goodbye"], passthrough=True, to="close_default")
     nodes["end_tech"]["transitions"] = close_by_final

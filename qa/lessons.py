@@ -69,8 +69,8 @@ def check(events, ledger, policy, code_steps=None, max_node_entries=None):
         calls = ledger.get("calls") or []
         if not calls or calls[-1].get("tool") != "close_call":
             fails.append("the call was not closed with close_call as the last tool call")
-        if sum(1 for c in calls if c.get("tool") == "close_call") != 1:
-            fails.append("close_call was not called exactly once")
+        if sum(1 for c in calls if c.get("tool") == "close_call" and (c.get("result") or {}).get("ok")) != 1:
+            fails.append("close_call did not succeed exactly once")
     return fails
 
 

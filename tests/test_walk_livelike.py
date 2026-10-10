@@ -33,6 +33,20 @@ LIVE = {
         ("Okay, what is this about?", {"reply": "ack", "topic": "what_about"}),
         ("I actually paid it in the app this morning.", {"topic": "already_paid"}),
     ],
+    # gate 4, PUB-12: the refused loans were named in the same sentence and got the credit card's date
+    "PUB-12": [
+        ("Yes, this is Marcus Bell.", {"reply": "yes"}),
+        ("Nineteen October nineteen eighty three.", {"reply": "none", "intent": "none", "topic": "none"}),
+        ("Four four zero one.", {"reply": "yes"}),
+        ("Four four one zero.", {"reply": "none", "intent": "none", "topic": "none"}),
+        ("What is this about?", {"topic": "what_about"}),
+        ("I will pay the credit card tomorrow, but I am not paying the personal loan or the car loan.",
+         {"reply": "no", "intent": "propose", "pay_date": "tomorrow"}),
+        ("No, I am not paying the personal loan.", {"reply": "no", "intent": "refuse_pay"}),
+        ("No.", {"reply": "no", "intent": "refuse_pay"}),
+        ("No, I won't.", {"reply": "no", "intent": "refuse_pay"}),
+        ("Yes, I confirm.", {"reply": "yes"}),
+    ],
 }
 
 
@@ -45,3 +59,18 @@ def test_livelike(cid):
     fails = lessons.check(LW.events(w), bank.ledger, pol, code_steps=w.code_steps_per_turn, max_node_entries=w.nodes_entered)
     assert not fails, "%s\n%s" % (fails, LW.text_of(w))
     assert not w.rejected
+
+
+def test_correction_at_readback_refuses_some_products():
+    """At the read-back the customer takes two products back: they go to the persuasion attempts (PUB-12 rules)."""
+    script = LIVE["PUB-12"][:5] + [
+        ("I can pay all of them tomorrow.", {"intent": "propose", "pay_date": "tomorrow"}),
+        ("Actually only the credit card, I am not paying the loans.", {"reply": "no", "intent": "propose"}),
+        ("No.", {"reply": "no", "intent": "refuse_pay"}),
+        ("No.", {"reply": "no", "intent": "refuse_pay"}),
+        ("No, I won't.", {"reply": "no", "intent": "refuse_pay"}),
+        ("Yes, I confirm.", {"reply": "yes"}),
+    ]
+    w, bank, pol = walk("PUB-12", script=script)
+    r = score_ledger(CASES["PUB-12"], bank.ledger)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], LW.text_of(w))

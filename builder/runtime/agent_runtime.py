@@ -960,9 +960,18 @@ def run(V, P):
         step(st, inp, V, P, out, today)
     except Exception as e:  # never raise: honest technical ending
         st.setdefault("events", []).append("error:" + str(e)[:120])
-        end_call(st, out, V, P, st.get("outcome") or "unclear", [P["lines"]["tech_problem"]])
+        out = Out()
+        end_call(st, out, V, P, fallback_situation(st), [P["lines"]["tech_problem"]])
     finish(st, out, V, P)
     return st
+
+
+def fallback_situation(st):
+    """How to close if the next decide step fails (end_tech routes by final_route): not verified -> unclear,
+    verified -> service_error."""
+    if st.get("phase") in ("person", "third_party", "identity"):
+        return "unclear"
+    return "service_error"
 
 
 def finish(st, out, V, P):
@@ -988,7 +997,9 @@ def finish(st, out, V, P):
     if st.get("turn", 0) >= MAX_TURNS and st.get("phase") != "ended":
         end_call(st, out, V, P, st.get("outcome") or "unclear", [])
         V["route"] = out.route
-    if not V.get("final_outcome") or not V.get("final_route"):
+    if out.route in ("say", "confirm") and st.get("phase") != "ended":
+        set_outcome(V, P, fallback_situation(st))  # only used if a later decide step fails (end_tech)
+    elif not V.get("final_outcome") or not V.get("final_route"):
         set_outcome(V, P, st.get("outcome") or "unclear")
     st["events"] = (st.get("events") or [])[-12:]
     V["rb_state"] = json.dumps(st, separators=(",", ":"))
@@ -1291,7 +1302,7 @@ def precompute_verify(st, out, V, P, pm, q):
         set_outcome(V, P, "id_failed")
         V["farewell"] = " ".join([L(P, "id_fail", pm), P["lines"]["goodbye"]])
     else:
-        set_outcome(V, P, "id_declined")
+        set_outcome(V, P, "unclear")  # placeholder: only used if a later decide step fails
 
 
 def absorb_verify(st, V, P):
@@ -1333,10 +1344,9 @@ def absorb_verify(st, V, P):
 
 def step_after_verify(st, inp, V, P, out, pm, today):
     prods = load_products(V, P, today)
-    if not prods:
+    if not prods:  # get_account failed twice (account + account_r): honest technical ending
         st["acct_tries"] = st.get("acct_tries", 0) + 1
-        return end_call(st, out, V, P, "service_error" if st["acct_tries"] > 1 else st.get("outcome") or "refused",
-                        [P["lines"]["tech_problem"]])
+        return end_call(st, out, V, P, "service_error", [P["lines"]["tech_problem"]])
     st["products"] = prods
     st["phase"] = "negotiate"
     st["outcome"] = "refused"
@@ -1436,6 +1446,58 @@ def handle_interrupt(st, inp, V, P, out, pm, today, topic):
         out.say.append(L(P, "dispute_reply" if topic == "dispute" else "paid_reply", pm))
         return next_product_or_close(st, out, V, P, pm, today)
     return None
+
+
+CLAUSE_NEG = re.compile(r"\b(not|no|never|won't|wont|will not|can't|cant|cannot|refuse|refusing|don't|dont|do not|"
+                        r"nothing|neither|nor)\b|n't\b")
+CLAUSE_SPLIT = re.compile(r"(\bbut\b|\bexcept(?: for)?\b|\bapart from\b|\bother than\b|\bhowever\b|\bwhile\b|"
+                          r"\bwhereas\b|[.;!?,])")
+OTHERS = re.compile(r"\b(the )?(others|other ones|other two|other three|other one|rest|remaining ones|everything else|"
+                    r"other (products|loans|accounts|debts|cards))\b")
+
+
+def scope_split(st, inp, P):
+    """Split a multi-product statement into the products it pays (pos) and the ones it refuses (neg).
+
+    'I will pay the credit card tomorrow, but I am not paying the personal loan or the car loan' -> pos [card],
+    neg [loans]. A clause after 'except' / 'apart from' is a refusal. 'the others' / 'the rest' covers the products
+    not named elsewhere. A clause that only negates a day ('not today') refuses no product."""
+    t = norm(inp["utterance"]).replace("’", "'")
+    live = [p for p in st["products"] if p["status"] in ("open", "agreed")]
+    parts = CLAUSE_SPLIT.split(t)
+    pos, neg, others_pos, others_neg, carry = [], [], False, False, []
+    marker = ""
+    for part in parts:
+        if part is None:
+            continue
+        if CLAUSE_SPLIT.fullmatch(part.strip() or "#"):
+            marker = part.strip()
+            continue
+        c = part.strip()
+        if not c:
+            continue
+        hits = [p for p in scope_products(st, {"utterance": c, "pay_date": ""}, P) if p in live]
+        excepted = marker.startswith(("except", "apart", "other than"))
+        day_only = bool(NEG_DAY.search(c)) and not re.search(r"\b(pay|paying)\b[^.]{0,30}\b(not|never|won't|refuse)\b", c)
+        negative = excepted or (bool(CLAUSE_NEG.search(c)) and not day_only)
+        if OTHERS.search(c):
+            if negative:
+                others_neg = True
+            else:
+                others_pos = True
+        if not hits and carry and not negative and not day_only:
+            hits = carry
+        if day_only:
+            carry = hits
+            continue
+        carry = hits
+        (neg if negative else pos).extend(h for h in hits if h not in (neg if negative else pos))
+    pos = [p for p in pos if p not in neg]
+    if others_pos:
+        pos += [p for p in live if p not in neg and p not in pos]
+    if others_neg:
+        neg += [p for p in live if p not in pos and p not in neg]
+    return pos, neg
 
 
 def scope_products(st, inp, P):
@@ -1578,6 +1640,8 @@ def close_without_promise(st, out, V, P, pm, today, pre=None):
         first = [p for p in prods if p["status"] != "paid"][0]
         sit = situation_for_status(first["status"])
     set_notes(st, out, V, P, [p for p in prods if p["status"] not in ("agreed", "recorded")])
+    for k in range(1, 4):
+        out.extra["wp%d_on" % k] = "no"
     set_outcome(V, P, sit)
     st["outcome"] = sit
     st["phase"] = "ended"
@@ -1759,8 +1823,8 @@ def step_offer(st, inp, V, P, out, pm, today):
     if intent == "vague_time" and dres.get("status") == "none":
         dres = {"status": "vague"}
     if multi and stage == "all_today":
-        targets = scope_products(st, inp, P)
-        if reply == "yes" and not proposes:
+        targets, refused_now = scope_split(st, inp, P)
+        if reply == "yes" and not proposes and not refused_now:
             for p in prods:
                 if p["status"] == "open":
                     off = p.get("offer") or first_offer(p, P, today)
@@ -1768,7 +1832,7 @@ def step_offer(st, inp, V, P, out, pm, today):
             st["multi_stage"] = None
             return readback_or_close(st, out, V, P, pm, today)
         st["multi_stage"] = None
-        if proposes and (not targets or len(targets) == len([p for p in prods if p["status"] == "open"])):
+        if proposes and not refused_now and (not targets or len(targets) == len([p for p in prods if p["status"] == "open"])):
             # one statement for everything (B6): each product validated, late ones clamped to their own deadline
             return apply_to_all(st, inp, V, P, out, pm, today, amount, dres)
         if proposes and targets:
@@ -1789,7 +1853,7 @@ def step_offer(st, inp, V, P, out, pm, today):
     if p is None:
         return readback_or_close(st, out, V, P, pm, today)
     if multi:
-        targets = scope_products(st, inp, P)
+        targets, _neg = scope_split(st, inp, P)
         if proposes and targets and p not in targets:
             for q in targets:
                 apply_proposal(st, q, inp, V, P, out, pm, today, amount, dres, multi)
@@ -1924,10 +1988,19 @@ def step_confirm(st, inp, V, P, out, pm, today):
     snap = st.get("snapshot") or []
     if reply == "yes" and not inp["pay_date"] and not inp["pay_amount"] and intent not in ("too_much",):
         return start_writes(st, out, V, P, pm, today)
-    if inp["pay_date"] or inp["pay_amount"] or intent in ("propose", "too_much", "vague_time"):
-        # a change at the read-back: re-validate and read back again (A35)
+    pos, neg = scope_split(st, inp, P) if len(st["products"]) > 1 else ([], [])
+    if inp["pay_date"] or inp["pay_amount"] or intent in ("propose", "too_much", "vague_time") or neg:
+        # a change at the read-back: re-validate and read back again (A35). Products the customer now refuses go
+        # back to the persuasion attempts.
         agreed = [p for p in st["products"] if p["status"] == "agreed"]
-        targets = scope_products(st, inp, P) or agreed[:1]
+        for p in neg:
+            if p["status"] in ("agreed", "open"):
+                p["status"] = "open"
+                p["agreed"] = None
+                p["offer"] = None
+        targets = [p for p in pos if p not in neg] or ([] if neg else agreed[:1])
+        if not (inp["pay_date"] or inp["pay_amount"] or intent in ("propose", "too_much", "vague_time")):
+            targets = []
         amount = money_value(inp["pay_amount"]) if inp["pay_amount"] else None
         dres = parse_pay_date(inp["pay_date"], today, P["calendar"], P.get("dates") or {}) if inp["pay_date"] else {"status": "none"}
         for p in targets:
@@ -1999,21 +2072,38 @@ def start_writes(st, out, V, P, pm, today):
         out.extra["say_wp%d_ok" % k] = L(P, "recorded", pm, **view)
         out.extra["say_wp%d_fail" % k] = L(P, "record_failed", pm, **view)
     others = [p for p in st["products"] if p["status"] not in ("agreed",)]
-    notes_on = (P.get("notes") or {}).get("enabled")
-    if notes_on and len(st["products"]) > 1:
+    notes_multi = bool((P.get("notes") or {}).get("enabled")) and len(st["products"]) > 1
+    if notes_multi:
         set_notes(st, out, V, P, others)
     else:
         for k in range(1, 4):
             out.extra["wn%d_on" % k] = "no"
-    st["phase"] = "writing"
+    # a product whose write fails twice gets a service_error note in the chain itself (B11)
+    out.extra["wf_on"] = "yes" if notes_multi else "no"
+    out.extra["wf_reason"] = note_reason_for({"status": "failed"}, P) if notes_multi else ""
     st["writes_started"] = True
-    sit = "promise"
-    set_outcome(V, P, sit)
-    st["outcome"] = sit
+    # the chain ends on its own: any write ok -> the promise ending with 'farewell'; every write failed -> the
+    # ending precomputed here (final_route/final_reason) with 'farewell_af'. No customer turn is needed.
+    af = af_situation(st, P)
+    set_outcome(V, P, af)
+    st["outcome"] = "promise"
     V["farewell"] = " ".join([L(P, "after_promise", pm), P["lines"]["goodbye"]])
-    out.extra["say_after_fail"] = " ".join([L(P, "anything_else", pm)])
-    st["phase"] = "after_fail"
+    V["farewell_af"] = P["lines"]["goodbye"]
+    st["phase"] = "ended"
     out.route = "write_p1"
+
+
+def af_situation(st, P):
+    """The closing situation if every create_promise of this chain fails twice (Brief B closing rule)."""
+    prods = st["products"]
+    if not ((P.get("notes") or {}).get("enabled") and len(prods) > 1):
+        return "service_error"
+    for p in prods:
+        if p["status"] in ("agreed", "recorded", "failed"):
+            return "service_error"
+        if p["status"] != "paid":
+            return situation_for_status(p["status"])
+    return "paid"
 
 
 def absorb_writes(st, V):
