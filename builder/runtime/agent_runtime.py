@@ -342,7 +342,12 @@ VAGUE = re.compile(r"\b(next week|this week|the week after|week after next|end o
                    r"beginning of (the |next )?month|start of (the |next )?month|next month|later this month|"
                    r"in a (few|couple of) (days|weeks)|in (two|2|three|3) weeks|soon|sometime|some time|"
                    r"when (my|i get my|i get) (salary|pay|paycheck|wages|money)|payday|pay day|when i get paid|"
-                   r"when i can|later|after the weekend|over the weekend|at some point|in a week)\b")
+                   r"when i can|later|after the weekend|over the weekend|at some point|in a week|"
+                   r"(end|beginning|start|middle) of (the |this |next )?week|this weekend|the weekend|early next week|"
+                   r"later this week|in (a|one|1) weeks?|in (a|one|1) months?|in (two|2|three|3) (days|months))\b")
+NEG_DAY = re.compile(r"\b(not|n't|cannot|can't|cant|unable to|won't|wont|no way)\b[^.?!,;]{0,25}\b(today|tomorrow|tonight|now)\b|"
+                     r"\b(today|tomorrow|tonight)\b[^.?!,;]{0,12}\b(is not|isn't|won't|doesn't|does not|is impossible|"
+                     r"is too soon|no)\b")
 
 
 def parse_pay_date(text, today, cal, dates_cfg):
@@ -360,11 +365,18 @@ def parse_pay_date(text, today, cal, dates_cfg):
         if re.search(r"\d|" + "|".join(list(MONTHS) + list(WEEKDAYS) + list(ORD) + ["today", "tomorrow"]), tail):
             t = tail
             toks = tokens(t)
-    if re.search(r"\b(today|tonight|this (morning|afternoon|evening)|right now|now)\b", t):
+    neg = NEG_DAY.search(t.replace("’", "'"))
+    negated = set()
+    if neg:
+        for w in ("today", "tomorrow", "tonight", "now"):
+            if w in neg.group(0):
+                negated.add(w)
+    if re.search(r"\b(today|tonight|this (morning|afternoon|evening)|right now|now)\b", t) and \
+            not (negated & {"today", "tonight", "now"}):
         cands.append(("ok", today))
     if re.search(r"\bday after tomorrow\b", t):
         cands.append(("ok", today + datetime.timedelta(days=2)))
-    elif re.search(r"\btomorrow\b", t):
+    elif re.search(r"\btomorrow\b", t) and "tomorrow" not in negated:
         cands.append(("ok", today + datetime.timedelta(days=1)))
     m = re.search(r"\bin (\w+) days?\b", t)
     if m:

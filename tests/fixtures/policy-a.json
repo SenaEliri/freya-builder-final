@@ -3,7 +3,7 @@
  "bank": "Freya Bank",
  "address": "{title} {last_name}",
  "lines": {
-  "opening": "Hello, this is Freya Bank's digital assistant calling, and this call is recorded. Am I speaking with {title} {last_name}?",
+  "opening": "Hello, this is Freya Bank's digital assistant calling, and we are recording this call. Am I speaking with {title} {last_name}?",
   "person_question": "Am I speaking with {title} {last_name}?",
   "third_party_ask": "When would be a good time to reach {title} {last_name}?",
   "third_party_no_info": "I'm sorry, I can only speak with {title} {last_name} directly.",

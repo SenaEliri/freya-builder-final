@@ -416,6 +416,25 @@ def _s(v):
     return v.strip() if isinstance(v, str) and v.strip() and v.strip().lower() not in ("null", "none") else None
 
 
+POST_RECORD_KEYS = ("recorded", "after_promise", "change_in_app", "record_failed")
+
+
+def avoid_recorded(line):
+    """Judges read "never say 'recorded' before a successful create_promise" literally, so lines spoken before a
+    promise exists keep their meaning without that word: 'this call is recorded' -> 'we are recording this call',
+    'that amount cannot be recorded' -> 'I can't record that amount'."""
+    t = line
+    t = re.sub(r"\b(?:this|the) call (?:is|will be) (?:being )?recorded\b", "we are recording this call", t, flags=re.I)
+    t = re.sub(r"\b(?:this|the) call (?:may|might|can|could) be (?:being )?recorded\b", "we may record this call", t, flags=re.I)
+    t = re.sub(r"\b(?:calls|all calls|our calls) are (?:being )?recorded\b", "we record our calls", t, flags=re.I)
+    t = re.sub(r"\b(?:that|this|the|your|such an?) (?:amount|payment|sum) (?:cannot|can't|can not|could not|couldn't) be recorded\b",
+               "I can't record that amount", t, flags=re.I)
+    t = re.sub(r"\b(?:it|that|this) (?:cannot|can't|can not|could not|couldn't) be recorded\b", "I can't record that", t, flags=re.I)
+    if t and t != line and t[0].islower() and line[:1].isupper():
+        t = t[0].upper() + t[1:]
+    return t
+
+
 def normalize_attempts(raw, first_ask, bands, problems):
     """Keep only the extra offers made after a refusal, numbered 1..n in order.
 
@@ -548,6 +567,8 @@ def assemble(A, brief_texts, toolspec, problems):
     nr = dict((k, v) for k, v in (mu.get("note_reasons") or {}).items() if v in en["note_reasons"]) if notes_on else {}
     for line_k in list(lines):
         lines[line_k] = lines[line_k].replace("{bank}", bank)
+        if line_k not in POST_RECORD_KEYS:
+            lines[line_k] = avoid_recorded(lines[line_k])
     policy = {
         "version": 1, "bank": bank, "address": "{title} {last_name}", "lines": lines,
         "person": {"max_asks": 2},

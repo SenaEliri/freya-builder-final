@@ -25,6 +25,9 @@ def check(events, ledger, policy, code_steps=None, max_node_entries=None):
         if RECORD_WORDS.search(text or "") and ok_promises == 0 and "not record" not in (text or "").lower() \
                 and "could not" not in (text or "").lower():
             fails.append("L1 'recorded' said before any successful create_promise: %r" % text[:120])
+        elif re.search(r"\brecorded\b", text or "", re.I) and ok_promises == 0:
+            fails.append("L1 the word 'recorded' before any successful create_promise (judges read it literally): %r"
+                         % text[:120])
         seen_agent[text] = seen_agent.get(text, 0) + 1
         if NON_ENGLISH_CHARS.search(text or "") or NON_ENGLISH_WORDS.search((text or "").lower()):
             fails.append("L13 non-English agent line: %r" % text[:120])
