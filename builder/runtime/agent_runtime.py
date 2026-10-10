@@ -1679,7 +1679,10 @@ def step_negotiate(st, inp, V, P, out, pm, today):
         if out.route != "say" or out.say:
             return
     if ph == "support_offer":
-        has_offer = bool(inp["pay_date"] or inp["pay_amount"])
+        # only a real day or amount counts as the customer's own offer ('I cannot pay anything' is not one)
+        amt = money_value(inp["pay_amount"]) if inp["pay_amount"] else None
+        dst = parse_pay_date(inp["pay_date"], today, P["calendar"], P.get("dates") or {})["status"] if inp["pay_date"] else "none"
+        has_offer = (amt is not None and amt > 0) or dst in ("ok", "past", "conflict")
         if has_offer:
             st["phase"] = "negotiate"
         elif reply == "yes" or intent == "accept_transfer":
