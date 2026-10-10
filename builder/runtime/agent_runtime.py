@@ -670,10 +670,20 @@ def person_map(V, P):
     return {"title": S(V, "title"), "last_name": S(V, "last_name"), "first_name": S(V, "first_name"), "bank": P.get("bank", "")}
 
 
+def san(s):
+    return re.sub(r"[^a-z0-9]+", "_", str(s).lower()).strip("_") or "other"
+
+
+def end_route(outcome, reason):
+    return "end_" + san(outcome) + ("_r" if reason else "")
+
+
 def set_outcome(V, P, situation):
+    """Provisional or final outcome. final_route names the ending branch: with a reason field or without."""
     o = (P.get("outcomes") or {}).get(situation) or ["", None]
     V["final_outcome"] = o[0] or ""
     V["final_reason"] = o[1] if o[1] else NULL_REASON
+    V["final_route"] = end_route(o[0], o[1])
     return o
 
 
@@ -683,7 +693,7 @@ def end_call(st, out, V, P, situation, pre_lines):
     st["phase"] = "ended"
     words = [x for x in pre_lines if x] + [P["lines"]["goodbye"]]
     V["farewell"] = " ".join(words)
-    out.route = "end_" + (o[0] or "other")
+    out.route = V["final_route"]
     out.ending = situation
 
 
@@ -796,7 +806,7 @@ def finish(st, out, V, P):
     if st.get("turn", 0) >= MAX_TURNS and st.get("phase") != "ended":
         end_call(st, out, V, P, st.get("outcome") or "unclear", [])
         V["route"] = out.route
-    if not V.get("final_outcome"):
+    if not V.get("final_outcome") or not V.get("final_route"):
         set_outcome(V, P, st.get("outcome") or "unclear")
     st["events"] = (st.get("events") or [])[-12:]
     V["rb_state"] = json.dumps(st, separators=(",", ":"))
@@ -1150,14 +1160,38 @@ def step_after_verify(st, inp, V, P, out, pm, today):
         out.say.insert(0, answer_question(topic, P, pm, True))
     if multi:
         st["multi_stage"] = "all_today"
-        for p in prods:
-            p["offer"] = {"amount": p["past_due"], "date": d_iso(today), "kind": "today"}
-        out.say.append(L(P, "first_ask_multi", pm))
-    else:
-        p = prods[0]
-        p["offer"] = {"amount": p["past_due"], "date": d_iso(today), "kind": "today"}
-        out.say.append(L(P, "first_ask_single", pm))
+    for p in prods:
+        p["offer"] = first_offer(p, P, today)
+    out.say.append(first_ask_text(st, P, pm, today))
     st["cur"] = 0
+
+
+def first_ask_rule(P):
+    fa = P.get("first_ask") or {}
+    return fa.get("date_rule") or "today", fa.get("amount_rule") or "full"
+
+
+def first_offer(p, P, today):
+    """The first payment request for product p (kind 'today' marks the first request whatever its date rule)."""
+    date_rule, amount_rule = first_ask_rule(P)
+    dl = d_from(p["deadline"])
+    d = date_for_rule(date_rule, today, dl, P["calendar"]) if date_rule != "today" else today
+    if d > dl:
+        d = dl
+    amt = p["floor"] if amount_rule == "floor" else p["past_due"]
+    return {"amount": amt, "date": d_iso(d), "kind": "today"}
+
+
+def first_ask_text(st, P, pm, today):
+    prods = [p for p in st["products"] if p["status"] == "open"] or st["products"]
+    multi = len(st["products"]) > 1
+    if first_ask_rule(P) == ("today", "full"):
+        return L(P, "first_ask_multi" if multi and st.get("multi_stage") == "all_today" else "first_ask_single", pm)
+    if multi and st.get("multi_stage") == "all_today":
+        return " ".join(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, True, True) for p in prods)
+    p = cur_product(st) or prods[0]
+    off = p.get("offer") or first_offer(p, P, today)
+    return offer_text(P, pm, p, off["amount"], off["date"], today, multi, multi)
 
 
 # ---- negotiation (A18-A38, B1-B11)
@@ -1355,7 +1389,7 @@ def close_without_promise(st, out, V, P, pm, today, pre=None):
     st["outcome"] = sit
     st["phase"] = "ended"
     V["farewell"] = " ".join([x for x in (pre or []) if x] + [P["lines"]["goodbye"]])
-    out.route = "write_n1" if out.extra.get("wn1_on") == "yes" else "end_" + (P["outcomes"][sit][0] or "other")
+    out.route = "write_n1" if out.extra.get("wn1_on") == "yes" else V["final_route"]
 
 
 def set_notes(st, out, V, P, prods):
@@ -1509,14 +1543,13 @@ def repeat_pending(st, out, V, P, pm, today):
     if not p:
         return readback_or_close(st, out, V, P, pm, today)
     multi = len(st["products"]) > 1
-    if st.get("multi_stage") == "all_today":
-        out.say.append(L(P, "first_ask_multi", pm))
-    elif p.get("offer") and p["offer"].get("kind") == "today":
-        out.say.append(L(P, "first_ask_single", pm))
+    if st.get("multi_stage") == "all_today" or (p.get("offer") and p["offer"].get("kind") == "today"):
+        out.say.append(first_ask_text(st, P, pm, today))
     elif p.get("offer"):
         out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, multi, multi))
     else:
-        out.say.append(L(P, "first_ask_single", pm))
+        p["offer"] = first_offer(p, P, today)
+        out.say.append(first_ask_text(st, P, pm, today))
 
 
 def step_offer(st, inp, V, P, out, pm, today):
@@ -1534,7 +1567,8 @@ def step_offer(st, inp, V, P, out, pm, today):
         if reply == "yes" and not proposes:
             for p in prods:
                 if p["status"] == "open":
-                    accept(p, p["past_due"], d_iso(today))
+                    off = p.get("offer") or first_offer(p, P, today)
+                    accept(p, off["amount"], off["date"])
             st["multi_stage"] = None
             return readback_or_close(st, out, V, P, pm, today)
         st["multi_stage"] = None
@@ -1607,7 +1641,7 @@ def step_offer(st, inp, V, P, out, pm, today):
                     return
                 accept(p, off["amount"], dd, cl)
                 return next_product_or_close(st, out, V, P, pm, today)
-            accept(p, off["amount"], off["date"], off.get("kind") == "deadline" and False)
+            accept(p, off["amount"], off["date"])
             return next_product_or_close(st, out, V, P, pm, today)
     if reply == "no" or intent in ("refuse", "refuse_pay"):
         return next_attempt(st, out, V, P, pm, today, p)
@@ -1713,14 +1747,14 @@ def step_confirm(st, inp, V, P, out, pm, today):
         return next_product_or_close(st, out, V, P, pm, today)
     if reply == "no":
         st["phase"] = "negotiate"
-        out.say.append(L(P, "ask_exact_day", pm) if False else L(P, "repeat", pm))
+        out.say.append(L(P, "repeat", pm))
         for p in st["products"]:
             if p["status"] == "agreed":
                 p["status"] = "open"
                 p["offer"] = {"amount": p["agreed"]["amount"], "date": p["agreed"]["date"], "kind": "change"}
                 p["agreed"] = None
         out.say[:] = []
-        return next_product_or_close(st, out, V, P, pm, today) if False else ask_what_to_change(st, out, V, P, pm, today)
+        return ask_what_to_change(st, out, V, P, pm, today)
     st["clarify"] = st.get("clarify", 0) + 1
     if st["clarify"] > 3:
         for p in st["products"]:
@@ -1821,4 +1855,4 @@ def finish_after_fail(st, out, V, P, pm, today):
     st["phase"] = "ended"
     pre = [L(P, "after_promise", pm)] if rec else []
     V["farewell"] = " ".join(pre + [P["lines"]["goodbye"]])
-    out.route = "write_n1" if out.extra.get("wn1_on") == "yes" else "end_" + (P["outcomes"][sit][0] or "other")
+    out.route = "write_n1" if out.extra.get("wn1_on") == "yes" else V["final_route"]

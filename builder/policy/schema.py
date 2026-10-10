@@ -138,8 +138,13 @@ def validate(policy, toolspec):
     for t in en["product_types"]:
         if t not in policy["products"]:
             e.append("tool API product type %r has no products entry" % t)
-    # attempts
+    # first request and extra offers
+    fa = policy.get("first_ask") or {}
+    if fa and (fa.get("date_rule") not in DATE_RULES or fa.get("amount_rule") not in ("full", "floor")):
+        e.append("first_ask must have a date_rule in %s and amount_rule full or floor" % (DATE_RULES,))
     for i, a in enumerate(policy["attempts"]):
+        if a.get("n") != i + 1:
+            e.append("attempts[%d].n must be %d (extra offers numbered in order)" % (i, i + 1))
         if a.get("date_rule") not in DATE_RULES:
             e.append("attempts[%d].date_rule %r not in %s" % (i, a.get("date_rule"), DATE_RULES))
         if a.get("amount_rule") not in AMOUNT_RULES:

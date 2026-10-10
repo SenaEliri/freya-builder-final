@@ -1,0 +1,261 @@
+{
+ "version": 1,
+ "bank": "Northgate Savings Bank",
+ "address": "{title} {last_name}",
+ "lines": {
+  "opening": "Hello, this is Freya Bank's digital assistant calling, and this call is recorded. Am I speaking with {title} {last_name}?",
+  "person_question": "Am I speaking with {title} {last_name}?",
+  "third_party_ask": "When would be a good time to reach {title} {last_name}?",
+  "third_party_no_info": "I'm sorry, I can only speak with {title} {last_name} directly.",
+  "callback_window": "I can only arrange a call today or on the next business day, between 09:00 and 17:00. Is there a time in that window that works?",
+  "callback_done": "Thank you. We will call back on {when}.",
+  "deceased": "Please accept our condolences.",
+  "wrong_number": "I'm sorry for the inconvenience.",
+  "id_intro": "Before I continue, I need to ask you two security questions.",
+  "id_explain": "These questions protect your account.",
+  "id_fail": "I'm sorry, I could not verify your identity. Please use the mobile app or visit a branch.",
+  "id_retry": "That does not match our records. Could you tell me {label} again?",
+  "id_swapped": "Could you say the month as a word, please?",
+  "id_unreadable": "Sorry, I didn't catch that. Could you tell me {label} again?",
+  "id_more": "Could you give me the rest of {label}, please?",
+  "verified": "Thank you, your identity is verified.",
+  "disclosure_intro": "I am calling from the collections team about a late payment.",
+  "disclosure_item": "Your {product} has {past_due} past due, {days_late} days late.",
+  "first_ask_single": "Can you make this payment today?",
+  "first_ask_multi": "Can you pay all of them today?",
+  "offer": "Could you pay {amount} on {date}?",
+  "floor_offer": "I can record a payment of {amount} instead.",
+  "ask_exact_day": "Which exact day would that be?",
+  "next_business_day_offer": "{asked} is not a business day. The next business day is {date}. Would that work?",
+  "deadline_offer": "The latest date I can record is {date}. Can you pay by then?",
+  "past_date": "That date has already passed. Which day from today on would work?",
+  "date_conflict": "Just to be sure, did you mean {date}?",
+  "readback": "So that is {items}.",
+  "readback_item": "{amount} for your {product} on {date}",
+  "readback_clamped": "{amount} for your {product} on {date}, the latest date I can record for it",
+  "recorded": "Your promise of {amount} for your {product} on {date} is recorded.",
+  "confirm_question": "Is that correct?",
+  "after_promise": "We will send you an SMS to confirm.",
+  "rest_overdue": "The remaining balance stays overdue.",
+  "below_floor": "I'm sorry, I can't record an amount below {floor}.",
+  "paid_reply": "Thank you. Payments can take one business day to appear.",
+  "scam_reply": "You can verify this call by phoning Freya Bank's customer service number.",
+  "robot_reply": "I am Freya Bank's digital assistant.",
+  "no_info": "I'm sorry, I don't have that information.",
+  "change_in_app": "A recorded promise can't be changed in this call, but you can change it in the mobile app.",
+  "record_failed": "I'm sorry, I could not record the promise for your {product} because of a technical problem.",
+  "help_first": "Before I transfer you, is there anything I can help you with myself?",
+  "sympathy": "I'm very sorry to hear that.",
+  "support_offer": "Would you like me to connect you with our customer support team?",
+  "transfer": "I will transfer you now.",
+  "dispute_reply": "I understand, thank you for letting me know.",
+  "anything_else": "Is there anything else I can help you with?",
+  "repeat": "Sorry, could you repeat that, please?",
+  "which_product": "Which product do you mean: {products}?",
+  "goodbye": "Thank you for your time. Goodbye.",
+  "tech_problem": "I'm sorry, we are having a technical problem, so I can't continue this call right now."
+ },
+ "person": {
+  "max_asks": 2
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "postcode",
+    "label": "the postcode of your registered address",
+    "ask": "What is the postcode of your registered address?",
+    "kind": "text"
+   },
+   {
+    "field": "birth_year",
+    "label": "your year of birth",
+    "ask": "What is your year of birth?",
+    "kind": "year"
+   }
+  ],
+  "max_wrong": 2,
+  "swap_hint": "day_month_swapped",
+  "explain_once": true
+ },
+ "calendar": {
+  "weekend": [
+   5,
+   6
+  ],
+  "holidays": [
+   "2026-10-12",
+   "2026-10-26",
+   "2026-10-30",
+   "2026-12-25",
+   "2026-12-28"
+  ]
+ },
+ "bands": [
+  {
+   "name": "A",
+   "min": 1,
+   "max": 10,
+   "deadline_kind": "business_days",
+   "deadline_n": 10,
+   "attempts": 1
+  },
+  {
+   "name": "B",
+   "min": 11,
+   "max": 60,
+   "deadline_kind": "business_days",
+   "deadline_n": 6,
+   "attempts": 2
+  }
+ ],
+ "products": {
+  "credit_card": {
+   "phrase": "credit card ending {card_last4}",
+   "floor_field": "minimum_due"
+  },
+  "overdraft": {
+   "phrase": "overdraft",
+   "floor_field": "monthly_minimum"
+  }
+ },
+ "first_ask": {
+  "date_rule": "today",
+  "amount_rule": "full"
+ },
+ "attempts": [
+  {
+   "n": 1,
+   "date_rule": "end_of_week",
+   "amount_rule": "full_or_floor",
+   "bands": null
+  },
+  {
+   "n": 2,
+   "date_rule": "deadline",
+   "amount_rule": "floor",
+   "bands": [
+    "B"
+   ]
+  }
+ ],
+ "amounts": {
+  "full_first": true,
+  "floor_offer_once": true,
+  "below_floor": "reject_offer_floor",
+  "never_ask_how_much": true
+ },
+ "dates": {
+  "next_weekday": "following_week",
+  "this_weekday": "current_week"
+ },
+ "callback": {
+  "days": [
+   "today",
+   "next_business_day"
+  ],
+  "start": "09:00",
+  "end": "17:00",
+  "after_now": true,
+  "max_asks": 2
+ },
+ "outcomes": {
+  "promise": [
+   "PTP",
+   null
+  ],
+  "paid": [
+   "PAID",
+   null
+  ],
+  "transfer_restructuring": [
+   "XFR",
+   "RESTR"
+  ],
+  "transfer_human": [
+   "XFR",
+   "HUMAN"
+  ],
+  "transfer_support": [
+   "XFR",
+   "HARD"
+  ],
+  "refused": [
+   "NPTP",
+   "REF"
+  ],
+  "hardship": [
+   "NPTP",
+   "HARD"
+  ],
+  "dispute": [
+   "NPTP",
+   "DISP"
+  ],
+  "service_error": [
+   "NPTP",
+   "TECH"
+  ],
+  "id_failed": [
+   "NOID",
+   "FAIL"
+  ],
+  "id_declined": [
+   "NOID",
+   "DECL"
+  ],
+  "callback": [
+   "NOCT",
+   "CB"
+  ],
+  "no_callback": [
+   "NOCT",
+   "NOCB"
+  ],
+  "wrong_number": [
+   "NOCT",
+   "WRONG"
+  ],
+  "deceased": [
+   "NOCT",
+   "DEAD"
+  ],
+  "unclear": [
+   "NOCT",
+   "UNCL"
+  ]
+ },
+ "queues": {
+  "restructuring": "RESTR",
+  "human": "GENERAL",
+  "support": "CARE"
+ },
+ "notes": {
+  "enabled": true,
+  "reasons": {
+   "refused": "REF",
+   "hardship": "HARD",
+   "dispute": "DISP",
+   "paid": "PAID",
+   "service_error": "TECH"
+  },
+  "on_transfer": false
+ },
+ "multi": {
+  "enabled": true
+ },
+ "interrupts": {
+  "hardship": "the customer mentions illness, a death in the family or job loss",
+  "dispute": "the customer says the debt is not theirs, they never had this product, or the product was closed or paid off in the past",
+  "already_paid": "the customer says they already paid this past-due amount",
+  "restructuring": "the customer asks for a new payment plan or lower instalments",
+  "human": "the customer asks to speak to a human or a person",
+  "precedence": [
+   "hardship",
+   "dispute",
+   "already_paid",
+   "restructuring",
+   "human"
+  ]
+ },
+ "rules_text": []
+}

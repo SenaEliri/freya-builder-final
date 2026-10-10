@@ -124,6 +124,10 @@
    "floor_field": "instalment_amount"
   }
  },
+ "first_ask": {
+  "date_rule": "today",
+  "amount_rule": "full"
+ },
  "attempts": [
   {
    "n": 1,

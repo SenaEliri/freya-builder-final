@@ -1,0 +1,264 @@
+{
+ "bands": {
+  "first_ask": {
+   "date_rule": "today",
+   "amount_rule": "full"
+  },
+  "bands": [
+   {
+    "name": "A",
+    "min": 1,
+    "max": 10,
+    "deadline_kind": "business_days",
+    "deadline_n": 10,
+    "attempts": 1
+   },
+   {
+    "name": "B",
+    "min": 11,
+    "max": 60,
+    "deadline_kind": "business_days",
+    "deadline_n": 6,
+    "attempts": 2
+   }
+  ],
+  "attempts": [
+   {
+    "n": 1,
+    "date_rule": "end_of_week",
+    "amount_rule": "full_or_floor",
+    "bands": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "n": 2,
+    "date_rule": "deadline",
+    "amount_rule": "floor",
+    "bands": [
+     "B"
+    ]
+   }
+  ]
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "postcode",
+    "label": "postcode of the registered address",
+    "ask": "What is the postcode of your registered address?",
+    "kind": "text",
+    "length": null,
+    "date_order": null
+   },
+   {
+    "field": "birth_year",
+    "label": "year of birth",
+    "ask": "What is your year of birth?",
+    "kind": "year",
+    "length": 4,
+    "date_order": null
+   }
+  ],
+  "max_wrong": 2,
+  "swap_hint": "day_month_swapped",
+  "swap_ask": null,
+  "fail_say": "Please visit northgate.example/help or call the number on the back of your card",
+  "explain_once": "the questions keep their account safe",
+  "decline_after": 2
+ },
+ "calendar": {
+  "weekend": [
+   5,
+   6
+  ],
+  "holidays": [
+   "2026-10-12",
+   "2026-10-26",
+   "2026-10-30",
+   "2026-12-25",
+   "2026-12-28"
+  ],
+  "next_weekday": "following_week",
+  "this_weekday": null,
+  "numeric_order": null
+ },
+ "amounts": {
+  "products": {
+   "credit_card": {
+    "phrase": "credit card ending {card_last4}",
+    "floor_field": "minimum_due"
+   },
+   "overdraft": {
+    "phrase": "overdraft",
+    "floor_field": "monthly_minimum"
+   }
+  },
+  "currency_word": null,
+  "first_ask_single": null,
+  "first_ask_multi": null,
+  "rest_overdue": "The remaining balance stays overdue.",
+  "below_floor": null,
+  "never_ask_how_much": true
+ },
+ "third_party": {
+  "callback_days": [
+   "today",
+   "next_business_day"
+  ],
+  "callback_start": "09:00",
+  "callback_end": "17:00",
+  "after_now": true,
+  "max_asks": 2,
+  "condolence": "Please accept our condolences.",
+  "wrong_number_say": null
+ },
+ "multi": {
+  "multi_enabled": true,
+  "ask_all_today": true,
+  "per_product_attempts": true,
+  "clamp_to_deadline": false,
+  "single_readback": false,
+  "notes_enabled": true,
+  "note_reasons": {
+   "refused": "REF",
+   "hardship": "HARD",
+   "dispute": "DISP",
+   "paid": "PAID",
+   "service_error": "TECH"
+  },
+  "notes_on_transfer": false,
+  "closing_reason": "null"
+ },
+ "interrupts": {
+  "hardship": "customers who report serious illness, a death in the family or losing their job",
+  "support_queue": "CARE",
+  "sympathy": "one sentence of sympathy",
+  "support_offer": "offer the general service team",
+  "dispute": "Disputes",
+  "dispute_say": null,
+  "already_paid": "I already paid",
+  "paid_say": "payments can take two working days to show",
+  "restructuring": "Requests for a new instalment plan",
+  "restructuring_queue": "RESTR",
+  "human": "a customer who insists on a person after one offer of help",
+  "human_queue": "GENERAL",
+  "human_ask_first": true,
+  "scam_say": null,
+  "robot_say": null,
+  "no_info_say": null,
+  "change_say": null,
+  "precedence": [
+   "hardship",
+   "restructuring",
+   "human",
+   "already_paid",
+   "dispute"
+  ],
+  "refuse_talk_times": null
+ },
+ "outcomes": {
+  "promise": [
+   "PTP",
+   null
+  ],
+  "paid": [
+   "PAID",
+   null
+  ],
+  "transfer_restructuring": [
+   "XFR",
+   "RESTR"
+  ],
+  "transfer_human": [
+   "XFR",
+   "HUMAN"
+  ],
+  "transfer_support": [
+   "XFR",
+   "HARD"
+  ],
+  "refused": [
+   "NPTP",
+   "REF"
+  ],
+  "hardship": [
+   "NPTP",
+   "HARD"
+  ],
+  "dispute": [
+   "NPTP",
+   "DISP"
+  ],
+  "service_error": [
+   "NPTP",
+   "TECH"
+  ],
+  "id_failed": [
+   "NOID",
+   "FAIL"
+  ],
+  "id_declined": [
+   "NOID",
+   "DECL"
+  ],
+  "callback": [
+   "NOCT",
+   "CB"
+  ],
+  "no_callback": [
+   "NOCT",
+   "NOCB"
+  ],
+  "wrong_number": [
+   "NOCT",
+   "WRONG"
+  ],
+  "deceased": [
+   "NOCT",
+   "DEAD"
+  ],
+  "unclear": [
+   "NOCT",
+   "UNCL"
+  ]
+ },
+ "sentences": {
+  "opening": "This is Northgate's automated assistant and the call may be recorded. Am I speaking with {title} {last_name}?",
+  "person_question": "Am I speaking with {title} {last_name}?",
+  "third_party_ask": "When is {title} {last_name} available?",
+  "third_party_no_info": null,
+  "id_intro": null,
+  "id_explain": "These questions keep your account safe.",
+  "id_fail": "I could not verify your identity. Please visit northgate.example/help or call the number on the back of your card.",
+  "id_swapped": null,
+  "verified": null,
+  "disclosure_intro": null,
+  "first_ask_single": null,
+  "first_ask_multi": null,
+  "confirm_question": "Is that correct?",
+  "after_promise": "We will send you an SMS to confirm.",
+  "rest_overdue": "The remaining balance stays overdue.",
+  "below_floor": null,
+  "paid_reply": "Payments can take two working days to show.",
+  "dispute_reply": null,
+  "scam_reply": null,
+  "robot_reply": null,
+  "no_info": null,
+  "change_in_app": null,
+  "sympathy": null,
+  "support_offer": null,
+  "help_first": null,
+  "transfer": null,
+  "deceased": "Please accept our condolences.",
+  "wrong_number": null,
+  "goodbye": null,
+  "forbidden_before_identity": [
+   "money",
+   "arrears",
+   "collections",
+   "product"
+  ]
+ }
+}

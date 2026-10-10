@@ -96,7 +96,17 @@ class Bank(object):
         self.ledger["transfers"].append({"queue": b.get("queue")})
         return {"ok": True}
 
+    REASONS = {"promise": [], "paid": [], "transferred": ["restructuring", "human", "support"],
+               "no_promise": ["refused", "hardship", "dispute", "service_error"], "not_verified": ["failed", "declined"],
+               "not_reached": ["callback", "no_callback", "wrong_number", "deceased", "unclear"]}
+
     def t_close_call(self, b):
+        # mimics the hosted mock (seen 10 Oct): a reason field on an outcome without reasons is rejected
+        allowed = self.REASONS.get(b.get("outcome"))
+        if allowed is None:
+            return {"ok": False, "error": "unknown outcome"}
+        if ("reason" in b and b.get("reason") not in allowed) or (allowed and "reason" not in b):
+            return {"ok": False, "error": "this outcome needs one of these reasons: " + ", ".join(allowed)}
         self.ledger["outcome"] = b.get("outcome")
         self.ledger["reason"] = b.get("reason") or None
         self.closed = True

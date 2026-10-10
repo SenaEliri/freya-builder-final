@@ -146,21 +146,34 @@ def api_node(name, tool, body_defaults, transitions, response_mapping=None, defa
     return n
 
 
-def end_node(name, spoken_var="farewell", text=None):
-    msg = text if text is not None else "{{%s}}" % spoken_var
+def end_node(name):
+    """Hang up silently: the farewell was already spoken by the bye_ node, close_call was the last tool."""
     return {"name": name, "node_type": "end_call", "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
             "transitions": [],
             "terminal": {"type": "function", "function": {"name": name, "handler": "__function__:end_call",
                          "parameters": {"type": "object", "properties": {
-                             "message_mode": {"type": "string", "default": "custom"},
-                             "spoken_message": {"type": "string", "default": msg}}}}}}
+                             "message_mode": {"type": "string", "default": "none"}}}}}}
+
+
+def router(name, transitions):
+    """A silent passthrough step that only routes (no model call, no code)."""
+    return {"name": name, "node_type": "conversation", "passthrough": True, "on_enter": {"type": "silent"},
+            "task_message": "Say nothing. No tool call is allowed in this turn.", "disable_inactivity_monitor": True,
+            "passthrough_default_transition": transitions[-1]["target_node"], "transitions": transitions}
+
+
+def end_route(outcome, reason):
+    return "end_" + san(outcome) + ("_r" if reason else "")
 
 
 def build(policy, toolspec):
     T = toolspec["tools"]
     ex = extraction_schema(policy)
-    outcomes = list(toolspec["enums"]["outcomes"]) or sorted(set(o[0] for o in policy["outcomes"].values()))
-    end_names = dict((o, "end_" + san(o)) for o in outcomes)
+    variants = {}
+    for sit, (o, r) in sorted(policy["outcomes"].items()):
+        variants[end_route(o, r)] = (o, bool(r))
+    by_final = [when("final_route", "equals", rn, "bye" + rn[3:]) for rn in variants] + [always("bye_default")]
+    close_by_final = [when("final_route", "equals", rn, "close" + rn[3:]) for rn in variants] + [always("close_default")]
     nodes = {}
     lines = policy["lines"]
     opening = tpl(lines["opening"])
@@ -174,8 +187,8 @@ def build(policy, toolspec):
                 when("route", "equals", "write_p1", "wp1c"),
                 when("route", "equals", "write_n1", "wn1c"),
                 when("route", "equals", "end_tech", "end_tech")]
-    for o, en in end_names.items():
-        route_tr.append(when("route", "equals", en, en))
+    for rname in variants:
+        route_tr.append(when("route", "equals", rname, "bye" + rname[3:]))
     route_tr.append(always("say"))
     code = bundle.code(policy)
     nodes["decide"] = {"name": "decide", "node_type": "code", "passthrough": True, "passthrough_default_transition": "say",
@@ -197,8 +210,7 @@ def build(policy, toolspec):
     vt += [{"target_node": "v_unreadable", "description": "answer not readable",
             "condition": {"logic": "or", "conditions": [{"variable": "verify_response.data.ok", "operator": "equals", "operand": "false"},
                                                         {"variable": "verify_response.data.ok", "operator": "equals", "operand": "False"}]}},
-           when("verify_response.data.wrong_answers_left", "less_than", 1, end_names.get(policy["outcomes"]["id_failed"][0], "end_other"),
-                "no wrong answers left: identity failed"),
+           when("verify_response.data.wrong_answers_left", "less_than", 1, "v_failed", "no wrong answers left: identity failed"),
            always("v_wrong")]
     nodes["verify"] = api_node("verify", T["verify_identity"],
                                {"customer_id": "{{customer_id}}", "field": "{{v_field}}", "answer": "{{v_answer}}"}, vt,
@@ -216,7 +228,7 @@ def build(policy, toolspec):
     nodes["account_r"] = api_node("account_r", T["get_account"], {"customer_id": "{{customer_id}}"}, [always("decide")],
                                   response_mapping=[{"path": "data.products", "variable": "account_products"}])
     # write chains: c = clean (no failure yet), d = dirty (a write failed twice)
-    final_routes = [when("final_outcome", "equals", o, en) for o, en in end_names.items()] + [always("end_other")]
+    final_routes = by_final
 
     def after_promise(k, v):
         nxt = []
@@ -277,35 +289,37 @@ def build(policy, toolspec):
         nodes["wp%d_fail" % k] = f
     nodes["after_fail"] = conv("after_fail", "say_after_fail", extraction=ex)
     # transfer and callback
-    tr_out = end_names.get(policy["outcomes"]["transfer_human"][0], "end_other")
     nodes["xfer"] = api_node("xfer", T["transfer_to_agent"], {"customer_id": "{{customer_id}}", "queue": "{{xfer_queue}}"},
-                             [when_true("xfer_response.data.ok", tr_out), always("xfer_r")])
+                             [when_true("xfer_response.data.ok", "xfer_done"), always("xfer_r")])
     nodes["xfer_r"] = api_node("xfer_r", T["transfer_to_agent"], {"customer_id": "{{customer_id}}", "queue": "{{xfer_queue}}"},
-                               [when_true("xfer_r_response.data.ok", tr_out), always("end_tech")])
-    cb_out = end_names.get(policy["outcomes"]["callback"][0], "end_other")
+                               [when_true("xfer_r_response.data.ok", "xfer_done"), always("end_tech")])
+    nodes["xfer_done"] = router("xfer_done", by_final)
     cbody = {"customer_id": "{{customer_id}}", "date": "{{cb_date}}", "time": "{{cb_time}}"}
-    nodes["cb"] = api_node("cb", T["schedule_callback"], cbody, [when_true("cb_response.data.ok", cb_out), always("cb_r")])
-    nodes["cb_r"] = api_node("cb_r", T["schedule_callback"], cbody, [when_true("cb_r_response.data.ok", cb_out), always("end_tech")])
-    # endings: farewell comes from the terminal, never waits for a reply (L2)
-    for o, en in end_names.items():
-        nodes[en] = end_node(en)
-    nodes["end_other"] = end_node("end_other")
-    nodes["end_tech"] = end_node("end_tech", text=lines["tech_problem"] + " " + lines["goodbye"])
+    nodes["cb"] = api_node("cb", T["schedule_callback"], cbody, [when_true("cb_response.data.ok", "cb_done"), always("cb_r")])
+    nodes["cb_r"] = api_node("cb_r", T["schedule_callback"], cbody, [when_true("cb_r_response.data.ok", "cb_done"), always("end_tech")])
+    nodes["cb_done"] = router("cb_done", by_final)
+    nodes["v_failed"] = router("v_failed", by_final)
+    # endings (L2, L6): fixed farewell first (never waits), then close_call as an engine-run call, then hang up.
+    # close_call must omit `reason` for outcomes without one: the mock rejects reason "" (verified 10 Oct).
     close = T["close_call"]
-    close_tool = {"type": "function", "config": {"timeoutMs": 12000, "maxRetries": 1, "alwaysRunsAt": ["end_of_call"]},
-                  "function": {"name": "close_call", "handler": "__function__:api_call",
-                               "description": close.get("summary", "close_call"),
-                               "parameters": {"type": "object", "properties": {
-                                   "url": {"type": "string", "default": close["url"]},
-                                   "method": {"type": "string", "default": "POST"},
-                                   "headers": {"type": "object", "properties": {"Content-Type": {"type": "string", "default": "application/json"}}},
-                                   "body": {"type": "object", "required": [f for f in close.get("required", []) if f in ("customer_id", "outcome")],
-                                            "properties": {
-                                                "customer_id": {"type": "string", "default": "{{customer_id}}"},
-                                                "outcome": {"type": "string", "default": "{{final_outcome}}"},
-                                                "reason": {"type": "string", "default": "{{final_reason}}"}}}}}}}
-    wf = {"initial_node": "open", "system_prompt": system_prompt(policy), "nodes": nodes, "global_nodes": {},
-          "tools": [close_tool]}
+    for rn, (o, has_r) in variants.items():
+        nodes["bye" + rn[3:]] = conv("bye" + rn[3:], "farewell", passthrough=True, to="close" + rn[3:])
+        body = {"customer_id": "{{customer_id}}", "outcome": o}
+        if has_r:
+            body["reason"] = "{{final_reason}}"
+        nodes["close" + rn[3:]] = api_node("close" + rn[3:], close, body, [always(rn)])
+        nodes[rn] = end_node(rn)
+    uo, ur = policy["outcomes"]["unclear"]
+    dbody = {"customer_id": "{{customer_id}}", "outcome": uo}
+    if ur:
+        dbody["reason"] = ur
+    nodes["bye_default"] = conv("bye_default", "farewell", passthrough=True, to="close_default")
+    nodes["close_default"] = api_node("close_default", close, dbody, [always("end_default")])
+    nodes["end_default"] = end_node("end_default")
+    nodes["end_tech"] = conv("end_tech", text=lines["tech_problem"] + " " + lines["goodbye"], passthrough=True, to="close_default")
+    nodes["end_tech"]["transitions"] = close_by_final
+    nodes["end_tech"]["passthrough_default_transition"] = "close_default"
+    wf = {"initial_node": "open", "system_prompt": system_prompt(policy), "nodes": nodes, "global_nodes": {}}
     for n in nodes.values():
         if n.get("passthrough_default_transition") == "__set_below__":
             n["passthrough_default_transition"] = n["transitions"][-1]["target_node"]
