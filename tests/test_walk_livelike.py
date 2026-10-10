@@ -47,6 +47,35 @@ LIVE = {
         ("No, I won't.", {"reply": "no", "intent": "refuse_pay"}),
         ("Yes, I confirm.", {"reply": "yes"}),
     ],
+    # gate 5 corrects, PUB-06: the turn was cut at the comma before the correction ('on Thursday,' ... 'I mean Friday')
+    "PUB-06": [
+        ("Yes, this is Priya Nair.", {"reply": "yes"}),
+        ("It is the seventeenth of May nineteen eighty six.", {"reply": "none", "intent": "none", "topic": "none"}),
+        ("one five zero three, sorry, I mean one five zero two.", {"reply": "yes"}),
+        ("Okay, what is this about?", {"reply": "ack", "topic": "what_about"}),
+        ("That is way too much for me to pay right now. I cannot do the full amount.", {"reply": "no", "intent": "too_much"}),
+        ("I cannot pay that today. How much is the minimum?", {"reply": "no", "topic": "how_much"}),
+        ("I can pay that on Thursday,", {"intent": "propose", "pay_date": "on Thursday"}),
+        ("sorry, I mean Friday.", {"pay_date": "Friday"}),
+        ("Yes, I confirm.", {"reply": "yes"}),
+    ],
+    # gate 5 talkative, PUB-07: long turns cut mid-sentence; fragments used up the only persuasion attempt
+    "PUB-07": [
+        ("Yes, this is Samuel Ortiz. I have been so busy at work today that I barely had time to grab a coffee.", {"reply": "yes"}),
+        ("Work has been absolutely non-stop. My date of birth is the fifth of December nineteen seventy-five.", {"reply": "yes"}),
+        ("The traffic was just terrible this morning. The last four digits are seven zero nine three.", {"reply": "yes"}),
+        ("I am just swamped with all these meetings. I am calling to let you know that I cannot pay today.",
+         {"intent": "refuse_pay", "pay_date": "today"}),
+        ("My day has been so hectic with back-", {}),
+        ("My day has been so hectic with", {}),
+        ("back-to-back meetings. I cannot do it today, I can only pay the week after next.",
+         {"reply": "no", "intent": "vague_time", "pay_date": "the week after next"}),
+        ("I have been running from one meeting to", {}),
+        ("another and I also have my cousin's wedding coming up on the thirtieth. I", {"pay_date": "on the thirtieth"}),
+        ("can pay on Monday the 26th.", {"intent": "propose", "pay_date": "Monday the 26th"}),
+        ("Yes, that works.", {"reply": "yes"}),
+        ("Yes, I confirm.", {"reply": "yes"}),
+    ],
 }
 
 

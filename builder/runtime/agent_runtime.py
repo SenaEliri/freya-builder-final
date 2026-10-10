@@ -204,9 +204,10 @@ def money_value(text):
                     j = k
             if j < len(toks) and toks[j] in ("dollars", "dollar", "euros", "euro", "pounds") and j + 1 < len(toks) and toks[j + 1] == "and":
                 r2 = word_number(toks, j + 2)
-                if r2 and r2[1] < len(toks) and toks[r2[1]] in ("cents", "cent"):
+                if r2 and not r2[2] and r2[0] < 100 and (r2[1] >= len(toks) or toks[r2[1]] in ("cents", "cent", "pence")):
+                    # 'six hundred and thirty-seven dollars and fifty (cents)'
                     v += r2[0] / 100.0
-                    j = r2[1] + 1
+                    j = r2[1] + (1 if r2[1] < len(toks) else 0)
             found.append(v)
             i = j
             continue
@@ -799,12 +800,31 @@ NO_RE = re.compile(r"^\s*(no|nope|nah|not (today|really|now|possible)|i can'?t|i
 ACK_RE = re.compile(r"^\s*(ok|okay|alright|all right|mm+|hmm+|uh huh|i see|got it|fine|right then|one moment|hold on|wait)\b[\s.!,]*$")
 
 
+EVENT_WORDS = re.compile(r"\b(wedding|birthday|party|anniversary|funeral|holiday|holidays|vacation|trip|concert|match|"
+                         r"exam|appointment|christening|graduation|ceremony|festival|flight|surgery|operation)\b")
+PAY_WORDS = re.compile(r"\b(pay|paying|payment|transfer|send|settle|cover|clear)\b")
+
+
+def not_about_paying(utt, phrase):
+    """True when the date phrase sits in a clause about another event ('my cousin's wedding is on the 30th')."""
+    u = norm(utt)
+    ph = norm(phrase)
+    if not ph or ph not in u:
+        return False
+    for clause in re.split(r"[.;!?]|\bbut\b|\band\b", u):
+        if ph in clause:
+            return bool(EVENT_WORDS.search(clause)) and not PAY_WORDS.search(clause)
+    return False
+
+
 def read_inputs(V):
     inp = {k: S(V, k) for k in ("utterance", "reply", "intent", "topic", "pay_date", "pay_amount")}
     utt = inp["utterance"]
     for k in ("pay_date", "pay_amount"):
         if inp[k] and utt and not contains_phrase(utt, inp[k]):
             inp[k] = ""  # stale: not in this turn's message (L3)
+    if inp["pay_date"] and utt and not_about_paying(utt, inp["pay_date"]):
+        inp["pay_date"] = ""  # a date of another event, not a payment day (talkative customers)
     for k in ("reply", "intent", "topic"):
         inp[k] = norm(inp[k]).replace(" ", "_")
         if inp[k] in ("", "none", "null", "n_a"):
@@ -836,10 +856,13 @@ class Out(object):
         self.extra = {}
 
 
+RUNTIME_LINES = {"go_on": "Please go on.", "floor_info": "The lowest amount I can record for your {product} is {amount}."}
+
+
 def L(P, key, mp=None, **kw):
     base = dict(mp or {})
     base.update(kw)
-    return fill(P["lines"].get(key, ""), base)
+    return fill(P["lines"].get(key) or RUNTIME_LINES.get(key, ""), base)
 
 
 def person_map(V, P):
@@ -949,6 +972,38 @@ def today_of(V):
     return d or datetime.date.today()
 
 
+INCOMPLETE = re.compile(r"(,|;|:|\.\.\.|\u2026|-|\u2014)\s*$|\b(and|but|or|so|because|actually|sorry|i mean|could we|"
+                        r"can we|could i|can i|maybe|um|uh|er|erm|like|well|then|the|on|at|to|for|of|with|is|it's)\s*$",
+                        re.I)
+TALK_PHASES = ("negotiate", "confirm", "support_offer", "human_offer")
+
+
+def is_cut(inp):
+    """A turn that ends mid-sentence: a trailing comma/dash/connector, or four or more words without . ? !"""
+    u = (inp.get("utterance") or "").strip()
+    if not u or re.search(r"\b(goodbye|bye)\b", norm(u)):
+        return False
+    if INCOMPLETE.search(u):
+        return True
+    if not re.search(r"[.?!][\"')\]]*$", u) and len(u.split()) >= 4:
+        return True
+    return False
+
+
+def merge_fragment(st, inp):
+    """A customer turn cut at a pause ('I can pay that on Thursday,') is completed by the next one before deciding:
+    the next turn's values win, the fragment fills what the next turn lacks."""
+    fr = st.pop("fragment", None)
+    if not fr:
+        return inp
+    out = dict(inp)
+    out["utterance"] = (fr.get("utterance", "") + " " + inp["utterance"]).strip()
+    for k in ("pay_date", "pay_amount", "reply", "intent", "topic"):
+        if not inp.get(k) and fr.get(k):
+            out[k] = fr[k]
+    return out
+
+
 def run(V, P):
     st = get_state(V)
     st["turn"] = st.get("turn", 0) + 1
@@ -956,6 +1011,18 @@ def run(V, P):
     inp = read_inputs(V)
     today = today_of(V)
     V["say"] = ""
+    if st.get("fragment"):
+        inp = merge_fragment(st, inp)
+    if st.get("phase") in TALK_PHASES and is_cut(inp) and st.get("waits", 0) < 2:
+        # the customer was cut off mid-sentence (a pause ended their turn): wait for the rest before deciding
+        st["waits"] = st.get("waits", 0) + 1
+        st["fragment"] = dict(inp)
+        n = st.get("go_on_n", 0)
+        st["go_on_n"] = n + 1
+        out.say.append([L(P, "go_on", person_map(V, P)), "Sorry, go ahead.", "I'm listening."][n % 3])
+        finish(st, out, V, P)
+        return st
+    st["waits"] = 0
     try:
         step(st, inp, V, P, out, today)
     except Exception as e:  # never raise: honest technical ending
@@ -1263,6 +1330,9 @@ def step_identity(st, inp, V, P, out, pm):
     if val:
         ids["buf"] = {}
         ids["more"] = 0
+        # an answer ends a refusal episode: 'still declines' means refusing again without answering in between
+        ids["declines"] = 0
+        ids["explained"] = False
         ids["pending_field"] = q["field"]
         out.extra["v_field"] = q["field"]
         out.extra["v_answer"] = val
@@ -1719,10 +1789,12 @@ def validate_amount(p, amount, P, pm, today, out):
         if not p.get("below_floor_offered"):
             p["below_floor_offered"] = True
             p["floor_offered"] = True
-            out.say.append(L(P, "below_floor", pm, floor=money(p["floor"], P.get("currency_word", "dollars"))))
+            line = L(P, "below_floor", pm, floor=money(p["floor"], P.get("currency_word", "dollars")))
+            out.say.append(line)
             date = (p.get("offer") or {}).get("date") or d_iso(today)
             p["offer"] = {"amount": p["floor"], "date": date, "kind": "floor"}
-            out.say.append(offer_text(P, pm, p, p["floor"], date, today, len([1]) > 1, False))
+            if not line.rstrip().endswith("?"):
+                out.say.append(offer_text(P, pm, p, p["floor"], date, today, False, False))
             return None
         return -1
     return round(amount, 2)
@@ -1775,7 +1847,11 @@ def step_negotiate(st, inp, V, P, out, pm, today):
     if topic in ("robot", "scam", "other_question", "discount", "how_much", "why_needed", "what_about", "change_promise"):
         if topic == "how_much":
             p = cur_product(st) or prods[0]
-            out.say.append(L(P, "disclosure_item", pm, **product_view(p, P, today)))
+            if re.search(r"\b(minimum|lowest|least|smallest|at least)\b", norm(inp["utterance"])) and p.get("floor"):
+                out.say.append(L(P, "floor_info", pm, product=p["phrase"],
+                                 amount=money(p["floor"], P.get("currency_word", "dollars"))))
+            else:
+                out.say.append(L(P, "disclosure_item", pm, **product_view(p, P, today)))
         elif topic == "change_promise":
             out.say.append(L(P, "change_in_app", pm))
         else:
@@ -1908,6 +1984,13 @@ def step_offer(st, inp, V, P, out, pm, today):
     if reply == "ack":
         out.say.append(L(P, "repeat", pm))
         return repeat_pending(st, out, V, P, pm, today)
+    # after asking for the exact day, still no day: propose the deadline (A21) before counting a non-answer
+    if p.get("exact_asked") and not p.get("deadline_proposed") and (p.get("offer") or {}).get("kind") != "deadline":
+        p["deadline_proposed"] = True
+        dl = d_from(p["deadline"])
+        p["offer"] = {"amount": (p.get("offer") or {}).get("amount", p["past_due"]), "date": d_iso(dl), "kind": "deadline"}
+        out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, multi, multi))
+        return
     # a non-answer uses one persuasion attempt (A30) unless nothing was understood at all
     if inp["utterance"]:
         return next_attempt(st, out, V, P, pm, today, p)

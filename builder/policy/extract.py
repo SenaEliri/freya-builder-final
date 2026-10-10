@@ -64,6 +64,8 @@ DEFAULT_LINES = {
     "which_product": "Which product do you mean: {products}?",
     "goodbye": "Thank you for your time. Goodbye.",
     "tech_problem": "I'm sorry, we are having a technical problem, so I can't continue this call right now.",
+    "go_on": "Please go on.",
+    "floor_info": "The lowest amount I can record for your {product} is {amount}.",
 }
 
 SITUATIONS_TEXT = {
