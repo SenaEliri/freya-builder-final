@@ -1,0 +1,10 @@
+env.sh
+*.env
+.freya-agents.json
+.personas.json
+results/
+__pycache__/
+*.pyc
+.pytest_cache/
+out/
+traces/*.jsonl
