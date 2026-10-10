@@ -105,9 +105,12 @@ def build_context(brief_texts, toolspec):
 def q_identity(en):
     return PREAMBLE + (
         "How does the agent check identity? Allowed field values from the tool API: %s. Return JSON: "
-        '{"questions": [{"field": <allowed value>, "label": "<how to refer to it, e.g. your date of birth>", '
-        '"ask": "<the question the agent asks for it>", "kind": "date|digits|year|text", "length": <digits count or null>, '
-        '"date_order": "DMY|MDY|YMD for dates given only as numbers"}] in the order the brief requires, '
+        '{"questions": [{"field": <allowed value>, "label": "<how the agent refers to it, with your/the, so that it fits '
+        '\'Could you tell me ___ again?\', e.g. your date of birth>", "ask": "<the question the agent asks for it>", '
+        '"kind": "date (a full date) | digits (a fixed number of digits) | year | code (letters and/or digits, like a postcode '
+        'or a registration number) | text", "length": <digits count or null>, "date_order": "DMY|MDY|YMD for dates given only '
+        'as numbers", "upper": true|false (codes in capital letters), "keep_spaces": true|false (codes keep their inner spaces; '
+        'follow the tool API description of the answer)}] in the order the brief requires, '
         '"max_wrong": <total wrong answers that end the check>, "swap_hint": <the tool API hint value meaning day and month '
         'were swapped, or null>, "swap_ask": "<what to ask then>", "fail_say": "<what the agent must tell the customer after '
         'the check failed, e.g. where to go instead>", "explain_once": "<the one explanation when the customer does not want to '
@@ -184,7 +187,7 @@ def q_interrupts(en):
 LINE_SPEC = {
     "opening": "the first sentence(s) of the call, ending with the question that checks who is on the line",
     "person_question": "the question that checks who is on the line, alone",
-    "third_party_ask": "said to SOMEONE ELSE who answered (not the customer): ask when {title} {last_name} can be reached; refer to the customer as {title} {last_name}, never as 'you'; say nothing about why we call",
+    "third_party_ask": "said to SOMEONE ELSE who answered (not the customer): ask when the customer can be reached; refer to the customer by name placeholders such as {title} {last_name}, never as 'you'; say nothing about why we call",
     "third_party_no_info": "to someone else who asks why we call or offers to pay: reveal nothing",
     "id_intro": "lead-in before the first security question (nothing about why the bank calls)",
     "id_explain": "the one explanation when the customer does not want to answer the security questions",
@@ -222,9 +225,10 @@ def q_lines():
         "sentences the brief quotes word for word. If the brief only describes what to say, write the sentence that does "
         "exactly that (brief: 'say that payments can take one business day to appear' -> 'Payments can take one business "
         "day to appear.'). Never write instructions, descriptions or text starting with 'that', 'say', 'tell', 'offer', "
-        "'ask' or 'explain'. Keep {title} and {last_name} as placeholders for the customer's title and last name. Use null "
-        "when the brief says nothing about a key. Keys: " + keys +
-        '. Also add "forbidden_before_identity": [words the agent must never say before identity is verified]. '
+        "'ask' or 'explain'. Write the brief's call variables as placeholders in single braces, e.g. {title} {last_name}. "
+        "Use null when the brief says nothing about a key. Keys: " + keys +
+        '. Also add "forbidden_before_identity": [words the agent must never say before identity is verified] and '
+        '"call_variables": [the names of the variables every call starts with, as the brief lists them]. '
         "Return one JSON object with these keys.")
 
 
@@ -270,7 +274,7 @@ def iso_dates(text):
 BAD_START = re.compile(r"^(?:that\b|(?i:say|tell|offer|ask|explain|mention|one short|a short|inform|state|the agent|agent)\b)")
 
 
-def line_problem(key, v):
+def line_problem(key, v, names=None):
     if v is None:
         return None
     if not isinstance(v, str) or not v.strip():
@@ -286,12 +290,21 @@ def line_problem(key, v):
         return "%s must end with . or ? : %r" % (key, t[:80])
     if "{{" in t or "}}" in t:
         return "%s contains double braces" % key
-    if key in NEEDS_NAME and "{last_name}" not in t:
-        return "%s must name the customer with {title} {last_name}: %r" % (key, t[:80])
+    if key in NEEDS_NAME:
+        allowed = [n for n in (names or ["title", "last_name"]) if n not in ("customer_id", "now")]
+        if not any("{%s}" % n in t for n in allowed):
+            return "%s must name the customer with placeholders such as {title} {last_name}: %r" % (key, t[:80])
+    used = re.findall(r"\{(\w+)\}", t)
+    if names and key in NEEDS_NAME + PRE_ID_KEYS and any(u not in names and u != "bank" for u in used):
+        return "%s uses a placeholder that is not a call variable: %r" % (key, t[:80])
     return None
 
 
+PRE_ID_KEYS = ("third_party_no_info", "id_intro", "id_explain", "id_fail", "deceased", "wrong_number", "goodbye")
+
+
 NEEDS_NAME = ("opening", "person_question", "third_party_ask")
+
 
 
 def section_errors(name, ans, toolspec):
@@ -350,8 +363,10 @@ def section_errors(name, ans, toolspec):
             if ans.get(k) is not None and ans.get(k) not in en["queues"]:
                 e.append("%s %r is not one of %s" % (k, ans.get(k), en["queues"]))
     elif name == "sentences":
+        names = [str(n).strip("{} `") for n in (ans.get("call_variables") or []) if isinstance(n, str)]
+        names = [n for n in names if re.match(r"^[a-z][a-z0-9_]*$", n)] or None
         for k in LINE_SPEC:
-            pr = line_problem(k, ans.get(k))
+            pr = line_problem(k, ans.get(k), names)
             if pr:
                 e.append(pr)
         forb = [w.lower() for w in (ans.get("forbidden_before_identity") or []) if isinstance(w, str)]
@@ -452,9 +467,14 @@ def assemble(A, brief_texts, toolspec, problems):
     lines = dict(DEFAULT_LINES)
     sent = A.get("sentences") or {}
     forb = [w.lower() for w in (sent.get("forbidden_before_identity") or []) if isinstance(w, str) and w.strip()]
+    names = [str(n).strip("{} `") for n in (sent.get("call_variables") or []) if isinstance(n, str)]
+    names = [n for n in names if re.match(r"^[a-z][a-z0-9_]*$", n)]
+    for n in ("title", "first_name", "last_name"):
+        if n not in names and any("{%s}" % n in t for t in brief_texts):
+            names.append(n)
     for k in LINE_SPEC:
         v = _s(sent.get(k))
-        if v and not line_problem(k, v):
+        if v and not line_problem(k, v, names or None):
             if k in ("opening", "person_question", "id_intro", "third_party_ask", "third_party_no_info", "id_explain") and \
                     any(re.search(r"\b" + re.escape(w) + r"\b", v.lower()) for w in forb):
                 continue
@@ -469,6 +489,11 @@ def assemble(A, brief_texts, toolspec, problems):
                 item["length"] = int(q.get("length") or 4)
             if q["kind"] == "date":
                 item["date_order"] = q.get("date_order") if q.get("date_order") in ("DMY", "MDY", "YMD") else "DMY"
+            if q["kind"] == "code":
+                item["upper"] = q.get("upper") is not False
+                item["keep_spaces"] = q.get("keep_spaces") is True
+            if not re.match(r"^(your|the|a|an)\b", item["label"], re.I):
+                item["label"] = "your " + item["label"]
             qs.append(item)
     if not qs:  # fall back to the tool API's own field order
         for f in en["identity_fields"]:
@@ -542,6 +567,7 @@ def assemble(A, brief_texts, toolspec, problems):
         "interrupts": interrupts,
         "currency_word": _s(am.get("currency_word")) or "dollars",
         "forbidden_before_identity": forb[:20],
+        "call_variables": names,
         "rules_text": [],
     }
     return policy

@@ -110,6 +110,7 @@ def test_public_case_local(cid):
     assert r["pass"], "%s\n%s" % (r["failed"], LW.text_of(w))
     fails = lessons.check(LW.events(w), bank.ledger, pol, code_steps=w.code_steps_per_turn, max_node_entries=w.nodes_entered)
     assert not fails, "%s\n%s" % (fails, LW.text_of(w))
+    assert not w.rejected, "the platform would reject these code-step writes: %s" % sorted(set(w.rejected))
 
 
 def test_lint_clean():

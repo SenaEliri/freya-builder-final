@@ -62,58 +62,111 @@ def tokens(s):
     return re.findall(r"\d+(?:\.\d+)?(?:st|nd|rd|th)?|[a-z]+(?:'[a-z]+)?", s)
 
 
+def _cls(w):
+    if w in UNITS:
+        v = UNITS[w]
+        return ("unit" if v < 10 else "teen"), v
+    if w in TENS:
+        return "tens", TENS[w]
+    if w in ORD:
+        return "ord", ORD[w]
+    return None, None
+
+
 def word_number(toks, i):
-    """Parse a cardinal/ordinal number written in words starting at toks[i].
-    Returns (value, next_index, is_ordinal) or None."""
-    total, cur, j, used, ordinal = 0, 0, i, False, False
+    """Parse one cardinal/ordinal number written in words starting at toks[i].
+    Returns (value, next_index, is_ordinal) or None.
+
+    A small grammar, so that adjacent numbers stay apart: 'twenty eight nineteen ninety three' is 28 then 1993's
+    words, not one sum. 'four hundred and fifty five' = 455, 'two thousand and one' = 2001, 'thirty first' = 31."""
+    total, cur, j, last = 0, 0, i, None
     while j < len(toks):
         w = toks[j]
-        if w in UNITS:
-            cur += UNITS[w]
-        elif w in TENS:
-            cur += TENS[w]
-        elif w in ORD:
-            cur += ORD[w]
-            used, ordinal, j = True, True, j + 1
-            break
-        elif w.endswith("th") and w[:-2] in TENS:
-            pass
-        elif w == "hundred" and used:
+        c, v = _cls(w)
+        if w == "a" and j + 1 < len(toks) and toks[j + 1] in ("hundred", "thousand") and last is None:
+            cur, last, j = 1, "unit", j + 1
+            continue
+        if c == "unit":
+            if last not in (None, "tens", "hundred", "thousand", "and"):
+                break
+            if w in ("o", "oh", "nil") and last is not None:
+                break
+            cur += v
+            last = "unit"
+        elif c == "teen":
+            if last not in (None, "hundred", "thousand", "and"):
+                break
+            cur += v
+            last = "teen"
+        elif c == "tens":
+            if last not in (None, "hundred", "thousand", "and"):
+                break
+            cur += v
+            last = "tens"
+        elif c == "ord":
+            if v >= 20 and last not in (None, "hundred", "thousand", "and"):
+                break
+            if v < 20 and last not in (None, "tens", "hundred", "thousand", "and"):
+                break
+            return total + cur + v, j + 1, True
+        elif w == "hundred" and last in ("unit", "teen"):
             cur = max(cur, 1) * 100
-        elif w == "thousand" and used:
+            last = "hundred"
+        elif w == "thousand" and last in ("unit", "teen", "tens", "hundred"):
             total += max(cur, 1) * 1000
             cur = 0
-        elif w == "and" and used and j + 1 < len(toks) and (toks[j + 1] in UNITS or toks[j + 1] in TENS or toks[j + 1] in ORD):
-            j += 1
-            continue
+            last = "thousand"
+        elif w == "and" and last in ("hundred", "thousand") and j + 1 < len(toks) and _cls(toks[j + 1])[0] is not None:
+            last = "and"
         else:
             break
-        used = True
         j += 1
-    if not used:
+    if last is None or last == "and":
         return None
-    return total + cur, j, ordinal
+    return total + cur, j, False
 
 
 def year_words(toks, i):
-    """'nineteen eighty eight' -> 1988, 'two thousand and one' -> 2001, 'twenty twenty six' -> 2026."""
+    """'nineteen eighty eight' -> 1988, 'two thousand and one' -> 2001, 'twenty twenty six' -> 2026,
+    'nineteen oh five' -> 1905. 'twenty eight' is the number 28, not a year."""
     if i >= len(toks):
         return None
     t = toks[i]
     if re.match(r"^\d{4}$", t):
         return int(t), i + 1
+    digs, j = [], i  # digit by digit: 'one nine eight eight', '1 9 8 8'
+    while j < len(toks) and len(digs) < 4:
+        w = toks[j]
+        if re.match(r"^\d$", w):
+            digs.append(w)
+        elif w in UNITS and UNITS[w] < 10:
+            digs.append(str(UNITS[w]))
+        else:
+            break
+        j += 1
+    if len(digs) == 4 and 1900 <= int("".join(digs)) <= 2100:
+        return int("".join(digs)), j
     if t in ("nineteen", "twenty") and i + 1 < len(toks):
         hi = UNITS.get(t) or TENS.get(t)
-        r = word_number(toks, i + 1)
-        if r and not r[2] and r[0] < 100 and toks[i + 1] not in ("thousand", "hundred"):
-            lo = r[0]
-            if toks[i + 1] in ("oh", "o") and r[1] < len(toks) + 1:
-                r2 = word_number(toks, i + 2)
-                if r2 and r2[0] < 10:
-                    return hi * 100 + r2[0], r2[1]
-            return hi * 100 + lo, r[1]
+        nxt = toks[i + 1]
+        if nxt in ("oh", "o", "zero") and i + 2 < len(toks):
+            c, v = _cls(toks[i + 2])
+            if c == "unit" and v > 0:
+                return hi * 100 + v, i + 3
+            return None
+        if nxt in ("hundred",):
+            r = word_number(toks, i + 2) if i + 2 < len(toks) else None
+            if r and not r[2] and r[0] < 100:
+                return hi * 100 + r[0], r[1]
+            return hi * 100, i + 2
+        c, _ = _cls(nxt)
+        if c in ("teen", "tens"):
+            r = word_number(toks, i + 1)
+            if r and not r[2] and 10 <= r[0] < 100:
+                return hi * 100 + r[0], r[1]
+        return None
     r = word_number(toks, i)
-    if r and 1900 <= r[0] <= 2100:
+    if r and not r[2] and 1900 <= r[0] <= 2100:
         return r[0], r[1]
     return None
 
@@ -427,8 +480,15 @@ def _next_day_number(today, day):
     return None
 
 
+def _numberish(w):
+    return bool(re.match(r"^\d", w or "")) or _cls(w or "")[0] is not None
+
+
 def parse_dob(text, order="DMY"):
-    """Date of birth parts from speech -> dict(y, m, d) with None for parts not given."""
+    """Date of birth parts from speech -> dict(y, m, d) with None for parts not given.
+
+    Handles '14 March 1988', 'the fourteenth of March, nineteen eighty-eight', 'twenty-eight April nineteen
+    ninety-three', 'March 14th 88', '14/03/1988', '1988-03-14' and day/month given as two small numbers."""
     t = norm(text)
     out = {"y": None, "m": None, "d": None}
     mm = re.search(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b", t)
@@ -440,32 +500,129 @@ def parse_dob(text, order="DMY"):
         if y < 100:
             y += 1900 if y > 30 else 2000
         d, m = (b, a) if order == "MDY" else (a, b)
+        if m > 12 and d <= 12:
+            d, m = m, d
         return {"y": y, "m": m, "d": d}
     toks = tokens(t)
+    small, two_digit = [], []
     i = 0
     while i < len(toks):
         w = toks[i]
-        if w in MONTHS and (w != "may" or True):
+        if w in MONTHS and (w != "may" or _numberish(toks[i - 1] if i else "") or
+                            _numberish(toks[i + 1] if i + 1 < len(toks) else "") or
+                            (i + 1 < len(toks) and toks[i + 1] in ("the",))):
             out["m"] = MONTHS[w]
             i += 1
             continue
         yr = year_words(toks, i)
-        if yr and 1900 <= yr[0] <= 2030 and (re.match(r"^\d{4}$", toks[i]) or toks[i] in ("nineteen", "twenty", "two")):
+        if yr and 1900 <= yr[0] <= 2030:
             out["y"] = yr[0]
             i = yr[1]
             continue
         m2 = re.match(r"^(\d{1,2})(st|nd|rd|th)?$", w)
-        if m2 and 1 <= int(m2.group(1)) <= 31:
-            out["d"] = int(m2.group(1))
+        if m2:
+            v = int(m2.group(1))
+            if m2.group(2) or 1 <= v <= 31:
+                small.append((v, bool(m2.group(2))))
+            elif v >= 32:
+                two_digit.append(v)
             i += 1
             continue
         r = word_number(toks, i)
-        if r and 1 <= r[0] <= 31:
-            out["d"] = r[0]
+        if r:
+            v = r[0]
+            if 1 <= v <= 31:
+                small.append((v, r[2]))
+            elif 32 <= v <= 99 and not r[2]:
+                two_digit.append(v)
             i = r[1]
             continue
         i += 1
+    if small:
+        ords = [v for v, o in small if o]
+        if out["m"] is not None:
+            out["d"] = (ords or [v for v, _ in small])[-1] if len(small) > 1 and ords else small[0][0]
+            if len(small) > 1 and out["y"] is None and not ords and small[-1][0] >= 0:
+                two_digit.append(small[-1][0])
+        elif len(small) >= 2:
+            a, b = small[0][0], small[1][0]
+            d, m = (b, a) if order == "MDY" else (a, b)
+            if m > 12 and d <= 12:
+                d, m = m, d
+            if 1 <= m <= 12:
+                out["d"], out["m"] = d, m
+            if len(small) >= 3 and out["y"] is None:
+                two_digit.append(small[2][0])
+        else:
+            out["d"] = small[0][0]
+    if out["y"] is None and two_digit:
+        v = two_digit[-1]
+        out["y"] = 1900 + v if v >= 30 else 2000 + v
     return out
+
+
+LEAD_IN = re.compile(r"^(?:(?:yes|yeah|sure|okay|ok|um|uh|well|so|right)[, ]+)*(?:(?:it'?s|it is|that'?s|that is|"
+                     r"(?:my|our|the) [a-z ]{1,40}? (?:is|are))\s+)?", re.I)
+
+
+CODE_STOP = set("it is my me at on in to so ok oh uh um of or an as be by do go he we us no hi am".split())
+
+
+def parse_code(text, upper=True, keep_spaces=False):
+    """An alphanumeric code (postcode, company number) from speech: 'S W one A, one A A' -> 'SW1A1AA',
+    'SW1A 1AA' -> 'SW1A1AA', 'three four zero zero zero' -> '34000'. The longest run of letters/digits wins; the
+    last one on a tie (corrections)."""
+    toks = re.findall(r"[a-z0-9]+", re.sub(r"'[a-z]+\b", "", norm(text)))
+    runs, cur = [], []
+    i = 0
+    while i < len(toks):
+        t = toks[i]
+        piece = None
+        if t in ("double", "triple") and i + 1 < len(toks):
+            nx = toks[i + 1]
+            unit = str(UNITS[nx]) if nx in UNITS and UNITS[nx] < 10 else (nx if re.match(r"^[a-z0-9]$", nx) else None)
+            if unit is not None:
+                piece = unit * (2 if t == "double" else 3)
+                i += 1
+        elif re.match(r"^[0-9]+$", t) or (re.search(r"\d", t) and re.search(r"[a-z]", t) and len(t) <= 8):
+            piece = t
+        elif t in UNITS and UNITS[t] < 10:
+            piece = str(UNITS[t])
+        elif t in TENS:
+            v = TENS[t]
+            if i + 1 < len(toks) and toks[i + 1] in UNITS and 0 < UNITS[toks[i + 1]] < 10:
+                v += UNITS[toks[i + 1]]
+                i += 1
+            piece = str(v)
+        elif t in UNITS:
+            piece = str(UNITS[t])
+        elif len(t) <= 2 and t.isalpha() and (len(t) == 1 or t not in CODE_STOP):
+            piece = t
+        if piece is not None:
+            cur.append(piece)
+        elif cur:
+            runs.append(cur)
+            cur = []
+        i += 1
+    if cur:
+        runs.append(cur)
+    runs = [r for r in runs if re.search(r"\d", "".join(r)) or len("".join(r)) >= 4]
+    if not runs:
+        return None
+    best = None
+    for r in runs:
+        if best is None or len("".join(r)) >= len("".join(best)):
+            best = r
+    code = (" " if keep_spaces else "").join(best)
+    if len(code.replace(" ", "")) < 2:
+        return None
+    return code.upper() if upper else code
+
+
+def clean_text_answer(text):
+    t = (text or "").strip()
+    t = LEAD_IN.sub("", t).strip()
+    return t.strip(" .!?,") or None
 
 
 def dob_complete(parts):
@@ -550,10 +707,13 @@ def parse_time(text, cfg_start="10:00", cfg_end="19:00"):
 # ---------------------------------------------------------------- formatting
 
 def fill(tpl, mp):
+    """Fill {placeholders}; one that has no value is dropped (never spoken as a brace word)."""
     def rep(m):
         k = m.group(1)
-        return str(mp[k]) if k in mp and mp[k] is not None else m.group(0)
-    return re.sub(r"\{(\w+)\}", rep, tpl or "")
+        return str(mp[k]) if k in mp and mp[k] is not None else ""
+    out = re.sub(r"\{(\w+)\}", rep, tpl or "")
+    out = re.sub(r"\s+([,.?!])", r"\1", re.sub(r"\s{2,}", " ", out))
+    return out.strip()
 
 
 def money(x, word="dollars"):
@@ -645,8 +805,12 @@ def read_inputs(V):
             inp["reply"] = "no"
         elif ACK_RE.match(nu):
             inp["reply"] = "ack"
-    for k in ("utterance", "reply", "intent", "topic", "pay_date", "pay_amount"):
+    # clear this turn's inputs: the extractor may omit a variable next turn and the old value would stay. Enum
+    # variables only accept their own values (the platform rejects ""), so they are reset to "none".
+    for k in ("utterance", "pay_date", "pay_amount"):
         V[k] = ""
+    for k in ("reply", "intent", "topic"):
+        V[k] = "none"
     return inp
 
 
@@ -667,7 +831,13 @@ def L(P, key, mp=None, **kw):
 
 
 def person_map(V, P):
-    return {"title": S(V, "title"), "last_name": S(V, "last_name"), "first_name": S(V, "first_name"), "bank": P.get("bank", "")}
+    mp = {}
+    for k in P.get("call_variables") or []:
+        if re.match(r"^[a-z][a-z0-9_]*$", str(k)) and k not in ("customer_id", "now"):
+            mp[k] = S(V, k)
+    mp.update({"title": S(V, "title"), "last_name": S(V, "last_name"), "first_name": S(V, "first_name"),
+               "bank": P.get("bank", "")})
+    return mp
 
 
 def san(s):
@@ -1029,7 +1199,10 @@ def id_kind_parse(q, text, buf):
     if kind == "year":
         y = parse_year(text)
         return (y, None, True) if y else (None, buf, False)
-    v = (text or "").strip().strip(".")
+    if kind == "code":
+        v = parse_code(text, q.get("upper", True) is not False, bool(q.get("keep_spaces")))
+        return (v, None, True) if v else (None, buf, False)
+    v = clean_text_answer(text)
     return (v, None, True) if v else (None, buf, False)
 
 
@@ -1066,6 +1239,7 @@ def step_identity(st, inp, V, P, out, pm):
         return
     if val:
         ids["buf"] = {}
+        ids["more"] = 0
         ids["pending_field"] = q["field"]
         out.extra["v_field"] = q["field"]
         out.extra["v_answer"] = val
@@ -1073,8 +1247,15 @@ def step_identity(st, inp, V, P, out, pm):
         out.route = "verify"
         return
     if got and buf:
-        ids["buf"] = buf
-        out.say.append(L(P, "id_more", pm, label=q.get("label", "")))
+        ids["more"] = ids.get("more", 0) + 1
+        if ids["more"] <= 2:
+            ids["buf"] = buf
+            out.say.append(L(P, "id_more", pm, label=q.get("label", "")))
+            return
+        # still incomplete after asking for the rest twice: start this answer again
+        ids["buf"] = {}
+        ids["more"] = 0
+        out.say.append(q["ask"])
         return
     st["clarify"] = st.get("clarify", 0) + 1
     if st["clarify"] > 3:

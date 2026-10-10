@@ -56,7 +56,7 @@ LINE_KEYS = (
 
 DATE_RULES = ("today", "tomorrow", "end_of_week", "deadline", "next_business_day")
 AMOUNT_RULES = ("full", "floor", "full_or_floor", "current")
-ID_KINDS = ("date", "digits", "year", "text")
+ID_KINDS = ("date", "digits", "year", "code", "text")
 
 
 def _is_date(s):

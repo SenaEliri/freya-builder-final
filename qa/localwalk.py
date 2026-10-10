@@ -187,6 +187,13 @@ class Walk(object):
         self.code_steps_per_turn = []
         self.max_steps = max_steps
         self.nodes_entered = {}
+        self.rejected = []
+        # enum variables: the platform rejects a code step's write of any other value ("rejected by schema validation")
+        self.enums = {}
+        for nd in wf["nodes"].values():
+            for e in nd.get("extraction_schema") or []:
+                if e.get("enum_values"):
+                    self.enums[e["name"]] = list(e["enum_values"])
 
     def say(self, text, node):
         if text:
@@ -249,10 +256,15 @@ class Walk(object):
 
     def run_code(self, n):
         code = n["pre_actions"][0]["function"]["parameters"]["properties"]["code"]["default"]
-        g = {"vars": self.V, "__name__": "freya_code"}
+        g = {"vars": dict(self.V), "__name__": "freya_code"}
         try:
             exec(compile(code, "<decide>", "exec"), g)
             status = "success"
+            for k, v in g["vars"].items():
+                if k in self.enums and v not in self.enums[k]:
+                    self.rejected.append(k)
+                    continue
+                self.V[k] = v
         except Exception as e:
             status = "error"
             self.V["rb_error"] = repr(e)
