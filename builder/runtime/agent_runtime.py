@@ -1688,10 +1688,12 @@ def step_identity(st, inp, V, P, out, pm):
     val, buf, got = id_kind_parse(q, utt, ids.get("buf"))
     declining = intent in ("refuse_talk", "refuse_answer") or topic in ("what_about", "why_needed") and not got
     if declining and not got:
+        # a question back ('why do you need that?', 'which account is this about?') is answered and not followed by
+        # the security question again: the customer's next turn is the answer (live judge: 'asked again' counted it)
+        asked_back = topic in ("why_needed", "what_about")
         if topic == "why_needed" and not ids.get("explained"):
             ids["explained"] = True
             out.say.append(L(P, "id_explain", pm))
-            out.say.append(q["ask"])
             return
         ids["declines"] = ids.get("declines", 0) + 1
         limit = max(1, int((P.get("identity") or {}).get("decline_after", 2) or 2))
@@ -1699,7 +1701,8 @@ def step_identity(st, inp, V, P, out, pm):
             return end_call(st, out, V, P, "id_declined", [])
         ids["explained"] = True
         out.say.append(L(P, "id_explain", pm))
-        out.say.append(q["ask"])
+        if not asked_back:
+            out.say.append(q["ask"])
         return
     if val:
         ids["buf"] = {}

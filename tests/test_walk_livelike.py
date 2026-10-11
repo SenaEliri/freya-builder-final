@@ -217,3 +217,26 @@ def test_live_c2_small_talk_all_day_is_not_a_product_scope():
     w, bank, pol = walk("PUB-12", script=script)
     r = score_ledger(CASES["PUB-12"], bank.ledger)
     assert w.ended and r["pass"], "%s\n%s" % (r["failed"], LW.text_of(w))
+
+
+# candidate 2 v2, live asks_back run (simulation 7c481ff1), PUB-12: after 'Why do you need that?' / 'Which account is
+# this about?' the security question was asked again; the judge counted it ('the date of birth is not asked again')
+def test_live_c2_question_back_is_answered_without_asking_again():
+    script = [("Yes, this is Marcus Bell.", {"reply": "yes"}),
+              ("Why do you need that?", {"reply": "none", "intent": "none", "topic": "why_needed"}),
+              ("Nineteen October nineteen eighty three.", {"reply": "yes"}),
+              ("Which account is this about?", {"reply": "none", "intent": "none", "topic": "what_about"}),
+              ("Four four zero one.", {"reply": "yes"}), ("Four four one zero.", {}),
+              ("Okay. What is this about?", {"reply": "ack", "topic": "what_about"}),
+              ("I will pay the credit card tomorrow. I am not paying the personal loan or the car loan.",
+               {"reply": "no", "intent": "propose", "pay_date": "tomorrow", "pay_amount": "the credit card"}),
+              ("I am not paying that.", {"reply": "no", "intent": "refuse_pay"}),
+              ("I am not paying that.", {"reply": "no", "intent": "refuse_pay"}),
+              ("I am not paying that.", {"reply": "no", "intent": "refuse_pay"}), ("Yes, I confirm.", {"reply": "yes"})]
+    w, bank, pol = walk("PUB-12", script=script)
+    text = LW.text_of(w)
+    r = score_ledger(CASES["PUB-12"], bank.ledger)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
+    dob = pol["identity"]["questions"][0]["ask"]
+    phone = pol["identity"]["questions"][1]["ask"]
+    assert text.count(dob) == 1 and text.count(phone) == 1, text  # the wrong answer's retry is its own line
