@@ -188,7 +188,7 @@ def test_fragmented_month_then_day_keeps_the_named_products():
         ("No.", NO), ("No.", NO),
         ("Yes, I confirm.", YES)])
     lines = agent(w)
-    assert lines.count("Which exact day would that be?") == 1, text(w)
+    assert lines.count("I have November. Which day in November do you mean?") == 1, text(w)
     readback = [t for t in lines if t.startswith("So that is")][-1]
     assert "on Friday 13 November, the latest date I can record for it" in readback, readback
     assert promises(bank) == [("p1", 1374.5, "2026-11-13"), ("p3", 2240.0, "2026-11-20")], text(w)

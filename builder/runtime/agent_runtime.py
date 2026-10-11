@@ -618,6 +618,20 @@ def _numberish(w):
     return bool(re.match(r"^\d", w or "")) or _cls(w or "")[0] is not None
 
 
+DOB_MARK = re.compile(r"\b(date of birth is|date of birth's|birthday is|i was born on|i was born|born on)\b")
+
+
+def dob_text(text):
+    """The part of an answer that is the date of birth: after 'my date of birth is' when said, and without clauses
+    about another event ('my cousin's wedding is on the thirtieth')."""
+    t = norm(text)
+    m = list(DOB_MARK.finditer(t))
+    if m:
+        return t[m[-1].end():]
+    keep = [c for c in re.split(r"[.;!?]", t) if not EVENT_WORDS.search(c)]
+    return " ".join(keep) if any(c.strip() for c in keep) else t
+
+
 def parse_dob(text, order="DMY"):
     """Date of birth parts from speech -> dict(y, m, d) with None for parts not given.
 
@@ -958,7 +972,7 @@ EVENT_WORDS = re.compile(r"\b(wedding|birthday|party|anniversary|funeral|holiday
 PAY_WORDS = re.compile(r"\b(pay|paying|payment|transfer|send|settle|cover|clear)\b")
 
 
-CLAUSES = re.compile(r"[.;!?,]|\bbut\b|\band\b|\bhowever\b|\bthough\b")
+CLAUSES = re.compile(r"[.;!?,]|\bbut\b|\band\b|\bhowever\b|\bthough\b|\bbecause\b|\bsince\b")
 
 
 def not_about_paying(utt, phrase):
@@ -998,7 +1012,7 @@ def negated_in(utt, phrase):
     if re.match(r"^(until|till|before|after|from)\b", ph):
         return False
     k = u.rfind(ph)
-    start = max(u.rfind(x, 0, k) for x in (",", ".", ";", "!", "?", " but ", " however "))
+    start = max(u.rfind(x, 0, k) for x in (",", ".", ";", "!", "?", " but ", " however ", " because ", " since "))
     before = u[start + 1:k]
     if re.search(r"\b(until|till|before|from|after)\s*$", before):
         return False
@@ -1168,7 +1182,10 @@ RUNTIME_LINES = {"go_on": "Please go on.", "floor_info": "The lowest amount I ca
                  "amount_check": "Just to be sure, did you mean {amount}?",
                  "ask_change": "What would you like to change, the amount or the date?",
                  "wait_ok": "Of course, take your time.",
-                 "deadline_offer_multi": "The latest dates I can record are {items}. Can you pay by then?"}
+                 "deadline_offer_multi": "The latest dates I can record are {items}. Can you pay by then?",
+                 "id_tech": "Sorry, I could not check that just now. Could you tell me {label} again, please?",
+                 "no_discount": "I'm not able to offer a discount.",
+                 "ask_day_in_month": "I have {month}. Which day in {month} do you mean?"}
 
 
 def L(P, key, mp=None, **kw):
@@ -1482,7 +1499,7 @@ def answer_question(topic, P, pm, verified):
     if topic in ("who_is_calling",):
         return L(P, "robot_reply", pm)
     if topic == "discount":
-        return L(P, "no_discount", pm) or L(P, "no_info", pm)
+        return L(P, "no_discount", pm) or L(P, "no_info", pm)  # A33: no discount is offered
     return L(P, "no_info", pm)
 
 
@@ -1643,7 +1660,7 @@ def do_transfer(st, out, V, P, pm, kind):
 def id_kind_parse(q, text, buf):
     kind = q.get("kind")
     if kind == "date":
-        parts = parse_dob(text, q.get("date_order", "DMY"))
+        parts = parse_dob(dob_text(text), q.get("date_order", "DMY"))
         merged = dict(buf or {})
         for k in ("y", "m", "d"):
             if parts.get(k) is not None:
@@ -1748,7 +1765,7 @@ def precompute_verify(st, out, V, P, pm, q):
     out.extra["say_v_swapped"] = L(P, "id_swapped", pm, label=q.get("label", ""))
     out.extra["say_v_unreadable"] = L(P, "id_unreadable", pm, label=q.get("label", ""))
     out.extra["say_v_done"] = L(P, "verified", pm)
-    out.extra["say_v_tech"] = L(P, "id_unreadable", pm, label=q.get("label", ""))
+    out.extra["say_v_tech"] = L(P, "id_tech", pm, label=q.get("label", ""))  # the service failed, not the customer
     max_wrong = int(P["identity"].get("max_wrong", 3))
     if ids.get("wrong", 0) + 1 >= max_wrong:
         # if this answer is wrong the bank ends the check: the end node needs these already set
@@ -2207,13 +2224,19 @@ def validate_date(p, dres, P, pm, today, out, multi, allow_clamp):
     if st_ == "vague":
         if not p["exact_asked"]:
             p["exact_asked"] = True
-            out.say.append(L(P, "ask_exact_day", pm))
+            out.say.append(ask_day(P, pm, dres))
             return None, None
         p["offer"] = {"amount": amt, "date": d_iso(dl), "kind": "deadline"}
         out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, multi, multi))
         return None, None
     out.say.append(L(P, "ask_exact_day", pm))
     return None, None
+
+
+def ask_day(P, pm, dres):
+    """'Which exact day?' — building on a month the customer already gave ('I have October. Which day in October...')."""
+    m = dres.get("month")
+    return L(P, "ask_day_in_month", pm, month=MONTH_NAMES[m - 1]) if m else L(P, "ask_exact_day", pm)
 
 
 def validate_amount(p, c, P, pm, today, out, date=None):
@@ -2321,9 +2344,11 @@ def step_negotiate(st, inp, V, P, out, pm, today):
             for p in prods:
                 if p["status"] == "open":
                     p["status"] = "hardship"
+            if topic in INFO_TOPICS:
+                answer_info(st, inp, out, P, pm, today)  # 'No, and can I get a discount?' is answered, not dropped
             if any(p["status"] == "agreed" for p in prods):
                 return readback_or_close(st, out, V, P, pm, today)
-            return close_without_promise(st, out, V, P, pm, today)
+            return close_without_promise(st, out, V, P, pm, today, pre=list(out.say))
         else:
             if topic in INFO_TOPICS:
                 answer_info(st, inp, out, P, pm, today)
@@ -2642,7 +2667,7 @@ def apply_group(st, inp, V, P, out, pm, today, ar, dres, targets):
     if s in ("vague", "none", "ask"):
         if not st.get("all_exact_asked") or s == "ask":
             st["all_exact_asked"] = True
-            return ask_group(L(P, "ask_exact_day", pm))
+            return ask_group(ask_day(P, pm, dres))
         # A21 for a group: each product's own deadline, never one product's deadline for all (B3)
         dls = [(p, d_from(p["deadline"])) for p in targets]
         if len(set(d for _, d in dls)) == 1:
