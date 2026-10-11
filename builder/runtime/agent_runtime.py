@@ -618,17 +618,14 @@ def _numberish(w):
     return bool(re.match(r"^\d", w or "")) or _cls(w or "")[0] is not None
 
 
-DOB_MARK = re.compile(r"\b(date of birth is|date of birth's|birthday is|i was born on|i was born|born on)\b")
+OWN_BIRTH = re.compile(r"\b(date of birth|born|my birthday is|my birthday's|birthday is)\b")
 
 
 def dob_text(text):
-    """The part of an answer that is the date of birth: after 'my date of birth is' when said, and without clauses
-    about another event ('my cousin's wedding is on the thirtieth')."""
+    """The answer without clauses about another event ('my cousin's wedding is on the thirtieth', 'my sister's
+    birthday party was on the 30th'); a clause about the customer's own birth is always kept."""
     t = norm(text)
-    m = list(DOB_MARK.finditer(t))
-    if m:
-        return t[m[-1].end():]
-    keep = [c for c in re.split(r"[.;!?]", t) if not EVENT_WORDS.search(c)]
+    keep = [c for c in CLAUSES.split(t) if c and (OWN_BIRTH.search(c) or not EVENT_WORDS.search(c))]
     return " ".join(keep) if any(c.strip() for c in keep) else t
 
 
@@ -1012,7 +1009,14 @@ def negated_in(utt, phrase):
     if re.match(r"^(until|till|before|after|from)\b", ph):
         return False
     k = u.rfind(ph)
-    start = max(u.rfind(x, 0, k) for x in (",", ".", ";", "!", "?", " but ", " however ", " because ", " since "))
+    start = max(u.rfind(x, 0, k) for x in (",", ".", ";", "!", "?", " but ", " however "))
+    # 'because' / 'since' end the negated part only when what follows links the day to income or paying
+    # ('I cannot pay today because my salary arrives on the 6th'), never for another reason ('since the bank is
+    # closed on the 30th', 'because the 30th is when my rent is due')
+    for b in (" because ", " since "):
+        j = u.rfind(b, 0, k)
+        if j > start and (INCOME.search(u[j:k]) or PAY_INTENT.search(u[j:k])):
+            start = j + len(b) - 1
     before = u[start + 1:k]
     if re.search(r"\b(until|till|before|from|after)\s*$", before):
         return False
