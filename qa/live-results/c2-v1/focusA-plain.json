@@ -1,0 +1,236 @@
+{
+ "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+ "simulation_id": "5553f9dc-4b21-4837-91ce-7c66ca56e3c3",
+ "iteration_id": "ea76d05b-ed0d-43a4-9f3c-ba16af78cfd7",
+ "seconds": 170,
+ "passed": 4,
+ "total": 5,
+ "runs": 1,
+ "final": [
+  {
+   "id": "PUB-04",
+   "family": "Dates",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-05",
+   "family": "Hardship",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-06",
+   "family": "Amounts",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-07",
+   "family": "Dates",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-10",
+   "family": "Tool failure",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  }
+ ],
+ "rows": [
+  {
+   "id": "PUB-04",
+   "level": "medium",
+   "family": "Dates",
+   "pass": true,
+   "failed": [],
+   "call_id": "1b4c5264-1f38-4cc2-9fee-a1192d35d12a",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_b2466334-76d",
+   "slowest_turn_s": 26.4,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-05",
+   "level": "medium",
+   "family": "Hardship",
+   "pass": true,
+   "failed": [],
+   "call_id": "c1aa8555-e96d-40c6-a364-8f453ae6e4d2",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "customer_id": "c_b666bebd-f33",
+   "slowest_turn_s": 6.6,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-06",
+   "level": "hard",
+   "family": "Amounts",
+   "pass": false,
+   "failed": [
+    "conversation: The call failed to meet the success criteria because the agent never informed the customer that the remainder of the balance would stay overdue after making the minimum payment. Although the agent successfully recorded a promise for $637.50 on Friday, October 16, and did not ask the user how much they could pay, the specific requirement to include the note about the overdue balance was not met in "
+   ],
+   "call_id": "75eea58a-5940-4772-9eec-87dbd747d5b0",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_f3e80d28-229",
+   "slowest_turn_s": 21.7,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-07",
+   "level": "hard",
+   "family": "Dates",
+   "pass": true,
+   "failed": [],
+   "call_id": "d5459b0b-c40f-41b3-9ab7-e37ec3035810",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_5394c77d-939",
+   "slowest_turn_s": 5.7,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-10",
+   "level": "hard",
+   "family": "Tool failure",
+   "pass": true,
+   "failed": [],
+   "call_id": "ed805eb9-6f91-4de4-9f31-1a65752d3797",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_d00d8fe9-ccc",
+   "slowest_turn_s": 14.3,
+   "ended": "assistant-ended-call"
+  }
+ ],
+ "all_rows": [
+  [
+   {
+    "id": "PUB-04",
+    "level": "medium",
+    "family": "Dates",
+    "pass": true,
+    "failed": [],
+    "call_id": "1b4c5264-1f38-4cc2-9fee-a1192d35d12a",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_b2466334-76d",
+    "slowest_turn_s": 26.4,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-05",
+    "level": "medium",
+    "family": "Hardship",
+    "pass": true,
+    "failed": [],
+    "call_id": "c1aa8555-e96d-40c6-a364-8f453ae6e4d2",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "close_call"
+    ],
+    "customer_id": "c_b666bebd-f33",
+    "slowest_turn_s": 6.6,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-06",
+    "level": "hard",
+    "family": "Amounts",
+    "pass": false,
+    "failed": [
+     "conversation: The call failed to meet the success criteria because the agent never informed the customer that the remainder of the balance would stay overdue after making the minimum payment. Although the agent successfully recorded a promise for $637.50 on Friday, October 16, and did not ask the user how much they could pay, the specific requirement to include the note about the overdue balance was not met in "
+    ],
+    "call_id": "75eea58a-5940-4772-9eec-87dbd747d5b0",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_f3e80d28-229",
+    "slowest_turn_s": 21.7,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-07",
+    "level": "hard",
+    "family": "Dates",
+    "pass": true,
+    "failed": [],
+    "call_id": "d5459b0b-c40f-41b3-9ab7-e37ec3035810",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_5394c77d-939",
+    "slowest_turn_s": 5.7,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-10",
+    "level": "hard",
+    "family": "Tool failure",
+    "pass": true,
+    "failed": [],
+    "call_id": "ed805eb9-6f91-4de4-9f31-1a65752d3797",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_d00d8fe9-ccc",
+    "slowest_turn_s": 14.3,
+    "ended": "assistant-ended-call"
+   }
+  ]
+ ]
+}

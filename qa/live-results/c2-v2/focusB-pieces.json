@@ -1,0 +1,162 @@
+{
+ "agent_id": "02348dd0-989b-4359-bdbe-7c925c22477f",
+ "simulation_id": "a66ef1e1-6b8e-43db-9fb6-27e621a32c9f",
+ "iteration_id": "e5e322c3-b8c0-4d6d-9016-c4e82a67a224",
+ "seconds": 285,
+ "passed": 1,
+ "total": 3,
+ "runs": 1,
+ "final": [
+  {
+   "id": "PUB-11",
+   "family": "Multi-product",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-12",
+   "family": "Multi-product",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-13",
+   "family": "Multi-product",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  }
+ ],
+ "rows": [
+  {
+   "id": "PUB-11",
+   "level": "medium",
+   "family": "Multi-product",
+   "pass": false,
+   "failed": [
+    "promises [('p2', 213.0, '2026-10-16'), ('p3', 25.0, '2026-10-16')], expected [('p1', 220.0, '2026-10-16'), ('p2', 640.0, '2026-10-16'), ('p3', 75.0, '2026-10-16')]",
+    "notes [('p1', 'refused')], expected []",
+    "conversation: The assistant failed to meet two of the success criteria: 1) It did not perform a read-back or obtain confirmation for the credit card account, only summarizing the personal loan and car loan in message 32. 2) It only executed 'create_promise' for the personal loan and car loan (p2 and p3), failing to create one for the credit card account (p1) as seen in the system events. The call ended properly"
+   ],
+   "call_id": "d094fdc7-0f3e-4c7e-8e0f-39985ff643f1",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "add_note",
+    "close_call"
+   ],
+   "customer_id": "c_1e69ec5d-f15",
+   "slowest_turn_s": 42.4,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-12",
+   "level": "hard",
+   "family": "Multi-product",
+   "pass": false,
+   "failed": [
+    "outcome ('not_reached', 'unclear'), expected ('promise', None)",
+    "promises [], expected [('p1', 510.0, '2026-10-15')]",
+    "notes [], expected [('p2', 'refused'), ('p3', 'refused')]",
+    "conversation: The call failed to meet any of the specific success criteria because it was terminated prematurely due to a technical error. Specifically: - The phone question was never asked, whereas the criteria required it to be asked twice (the initial and one repeat). - The date of birth was asked about twice (initial and follow-up), which violated the criterion that it not be asked again. - No promises were"
+   ],
+   "call_id": "2767f22c-f37a-4d3e-bf31-dceef5ed8588",
+   "tools": [
+    "close_call"
+   ],
+   "customer_id": "c_e5ba65a5-a2e",
+   "slowest_turn_s": 5.9,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-13",
+   "level": "hard",
+   "family": "Multi-product",
+   "pass": true,
+   "failed": [],
+   "call_id": "f9b48a12-f2b8-4e4b-9308-9807b98d4e9b",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_80dce00f-d23",
+   "slowest_turn_s": 18.6,
+   "ended": "assistant-ended-call"
+  }
+ ],
+ "all_rows": [
+  [
+   {
+    "id": "PUB-11",
+    "level": "medium",
+    "family": "Multi-product",
+    "pass": false,
+    "failed": [
+     "promises [('p2', 213.0, '2026-10-16'), ('p3', 25.0, '2026-10-16')], expected [('p1', 220.0, '2026-10-16'), ('p2', 640.0, '2026-10-16'), ('p3', 75.0, '2026-10-16')]",
+     "notes [('p1', 'refused')], expected []",
+     "conversation: The assistant failed to meet two of the success criteria: 1) It did not perform a read-back or obtain confirmation for the credit card account, only summarizing the personal loan and car loan in message 32. 2) It only executed 'create_promise' for the personal loan and car loan (p2 and p3), failing to create one for the credit card account (p1) as seen in the system events. The call ended properly"
+    ],
+    "call_id": "d094fdc7-0f3e-4c7e-8e0f-39985ff643f1",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "add_note",
+     "close_call"
+    ],
+    "customer_id": "c_1e69ec5d-f15",
+    "slowest_turn_s": 42.4,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-12",
+    "level": "hard",
+    "family": "Multi-product",
+    "pass": false,
+    "failed": [
+     "outcome ('not_reached', 'unclear'), expected ('promise', None)",
+     "promises [], expected [('p1', 510.0, '2026-10-15')]",
+     "notes [], expected [('p2', 'refused'), ('p3', 'refused')]",
+     "conversation: The call failed to meet any of the specific success criteria because it was terminated prematurely due to a technical error. Specifically: - The phone question was never asked, whereas the criteria required it to be asked twice (the initial and one repeat). - The date of birth was asked about twice (initial and follow-up), which violated the criterion that it not be asked again. - No promises were"
+    ],
+    "call_id": "2767f22c-f37a-4d3e-bf31-dceef5ed8588",
+    "tools": [
+     "close_call"
+    ],
+    "customer_id": "c_e5ba65a5-a2e",
+    "slowest_turn_s": 5.9,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-13",
+    "level": "hard",
+    "family": "Multi-product",
+    "pass": true,
+    "failed": [],
+    "call_id": "f9b48a12-f2b8-4e4b-9308-9807b98d4e9b",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_80dce00f-d23",
+    "slowest_turn_s": 18.6,
+    "ended": "assistant-ended-call"
+   }
+  ]
+ ]
+}

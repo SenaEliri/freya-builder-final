@@ -1,0 +1,162 @@
+{
+ "agent_id": "02348dd0-989b-4359-bdbe-7c925c22477f",
+ "simulation_id": "7c481ff1-f65f-4409-be73-3f38c86159aa",
+ "iteration_id": "fbb2742d-e0b8-44b9-9844-360cc5dfaf67",
+ "seconds": 294,
+ "passed": 2,
+ "total": 3,
+ "runs": 1,
+ "final": [
+  {
+   "id": "PUB-11",
+   "family": "Multi-product",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-12",
+   "family": "Multi-product",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-13",
+   "family": "Multi-product",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  }
+ ],
+ "rows": [
+  {
+   "id": "PUB-11",
+   "level": "medium",
+   "family": "Multi-product",
+   "pass": true,
+   "failed": [],
+   "call_id": "872c1c9a-3151-4755-9f56-7a4c45eb43ab",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_a87c3818-537",
+   "slowest_turn_s": 10.9,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-12",
+   "level": "hard",
+   "family": "Multi-product",
+   "pass": false,
+   "failed": [
+    "conversation: Several criteria were not met: 1) The date of birth was asked twice (Messages 2 and 4), violating the requirement that it not be asked again. 2) The phone question was asked three times (Messages 6, 8, and 10), which exceeds the limit of being asked 'again once'. 3) There were three attempts on the personal loan (Messages 14, 16, and 18) instead of the required two. 4) There were two attempts on t"
+   ],
+   "call_id": "066218ba-ed85-4913-a996-89eba91dcb5e",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "customer_id": "c_cdcf49c9-610",
+   "slowest_turn_s": 18.5,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-13",
+   "level": "hard",
+   "family": "Multi-product",
+   "pass": true,
+   "failed": [],
+   "call_id": "cc340bef-5dbc-4450-aced-48d775dea75e",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_3c833cdb-d64",
+   "slowest_turn_s": 11.2,
+   "ended": "assistant-ended-call"
+  }
+ ],
+ "all_rows": [
+  [
+   {
+    "id": "PUB-11",
+    "level": "medium",
+    "family": "Multi-product",
+    "pass": true,
+    "failed": [],
+    "call_id": "872c1c9a-3151-4755-9f56-7a4c45eb43ab",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_a87c3818-537",
+    "slowest_turn_s": 10.9,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-12",
+    "level": "hard",
+    "family": "Multi-product",
+    "pass": false,
+    "failed": [
+     "conversation: Several criteria were not met: 1) The date of birth was asked twice (Messages 2 and 4), violating the requirement that it not be asked again. 2) The phone question was asked three times (Messages 6, 8, and 10), which exceeds the limit of being asked 'again once'. 3) There were three attempts on the personal loan (Messages 14, 16, and 18) instead of the required two. 4) There were two attempts on t"
+    ],
+    "call_id": "066218ba-ed85-4913-a996-89eba91dcb5e",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "add_note",
+     "add_note",
+     "close_call"
+    ],
+    "customer_id": "c_cdcf49c9-610",
+    "slowest_turn_s": 18.5,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-13",
+    "level": "hard",
+    "family": "Multi-product",
+    "pass": true,
+    "failed": [],
+    "call_id": "cc340bef-5dbc-4450-aced-48d775dea75e",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_3c833cdb-d64",
+    "slowest_turn_s": 11.2,
+    "ended": "assistant-ended-call"
+   }
+  ]
+ ]
+}
