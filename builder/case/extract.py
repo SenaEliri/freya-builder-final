@@ -62,6 +62,9 @@ Rules marked (replaced) are dropped.
 Write the final instructions for the assistant on this topic only:
 %(topic)s
 
+When a rule's condition needs a fact that the sources say no service provides yet (an open point), write the rule
+without that condition, as for the ordinary case: an offer that depends on such a fact is always made.
+
 Write for the assistant itself ("you"), as short imperative lines, complete enough that nothing on this topic needs
 another document. Leave out no decided rule of this topic, including questions asked between two steps and the
 conditions for asking them. Keep every sentence the assistant says verbatim in its original language. Name services and fields
