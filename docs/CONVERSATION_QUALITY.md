@@ -126,6 +126,9 @@ agent config); the only workflow difference anywhere is the decide code, which t
   offer a discount. Thank you and goodbye.", passed). **Not exercised live**: changes 1, 2, 4, 5 (no service failure,
   no event mentioned during identity, no "because my salary..." sentence, no month-only answer happened); they rest on
   the offline tests and counterexamples only.
+- Later, in the chat comparison (`docs/SENTIMENT_COMPARISON.md`, one chat per version, scripted customer):
+  changes 3, 4 and 5 occurred in live chats with bank records identical to v5's; change 2's scenario did not
+  differentiate (v5 also read that date of birth correctly); change 1 still did not occur.
 - Single runs of 8 of the 13 public cases, plain and pieces only. The baseline has three frozen runs of all 13 cases
   plus every speech style; c3.1 has neither.
 

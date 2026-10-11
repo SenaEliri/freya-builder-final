@@ -36,22 +36,16 @@ latter and needs `--update` for any existing slot.
 
 ### Running at this checkpoint (do not duplicate)
 
-- **Chat comparison** `tools/chat_compare.py` (local process on this Mac, started ~16:25 UTC; output
-  `qa/chat-compare/run.json`, log `results/chat-compare.log`; not committed while incomplete). Each chat used a new
-  practice customer and was closed with `/chat/end`. Completed chats (version, scenario, call id): v5 S1
-  `ff501c42`, c3.1 S1 `d235dcfa`, v5 S2 `238f998b`, c3.1 S2 `4c82582d`, v5 S3 `6f3d529d`, c3.1 S3 `0a17eb3d`, v5 S4
-  `7df63bfd`, c3.1 S4 `c9b62fd4` (full ids in `run.json`); S5 (both versions) was next, then up to 10 minutes of
-  waiting for the platform's post-call analysis. All completed chats passed their bank-ledger check.
+- **Chat comparison: finished** (10/10 chats, 11 Oct 16:18–16:29 UTC by the call records; sentiment measured for
+  10/10, 10/10 bank checks pass). Report: `docs/SENTIMENT_COMPARISON.md`; sanitized results `qa/chat-compare/`.
+  Do not re-run it.
 - No simulation is running (`GET /api/v2/simulations?workspaceId=…&status=running`). Simulation `d82d478f` (c3 B,
   stuck in the judge for 2 h) was set to `paused`; it was my own test run.
 
 ### Unfinished work and next steps
 
-1. **Sentiment comparison:** if `qa/chat-compare/run.json` has `"waited_s"`, the run finished: summarise it (both
-   transcripts per scenario side by side, the platform sentiment per call or "unmeasured") into
-   `docs/SENTIMENT_COMPARISON.md` on the experiment branch, commit `run.json` with it, push. If it did not finish:
-   read the analysis for the recorded call ids (`GET /api/v2/call/{id}`, tag `sentiment`, `analysis.summary`) and run
-   only the missing scenarios (do not repeat completed ones). Never assign a sentiment by hand.
+1. **Sentiment comparison:** done: `docs/SENTIMENT_COMPARISON.md` (sentiment differs only in the hardship scenario:
+   v5 −1, c3.1 −0.5; one call each, not a validation).
 2. **c3.1 promotion** needs three frozen runs of the full A and B suites (commands in `docs/CONVERSATION_QUALITY.md`);
    until then submit v5.
 3. **Hidden briefs (17:00 UTC):** build from `main` (v5 code): `python3 builder/build.py <brief.md> <api.json>` — it
