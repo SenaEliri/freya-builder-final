@@ -20,6 +20,7 @@ ONES = ["", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "do
 TENS = ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"]
 MONTHS = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
 DIGITS = ["sıfır"] + ONES[1:]
+PREFIX = {"official-examples": "official-scenario", "robustness": "adversarial"}
 
 
 def tr_words(n):
@@ -123,8 +124,18 @@ def _safe_timeline(cid):
 def play(workflow_id, sc):
     """Scripted caller. An utterance is a string, or a dict: say `say` up to `max` times until `repeat_until_tool`
     has run; with `when_agent_asks`, say `say` once the agent's last message contains that text, else `fallback_say`."""
-    r = P.freya.api("POST", "/api/v2/chat/message", {"workflowId": workflow_id, "message": sc["utterances"][0],
-                                                     "customerVariables": {"customerNumber": sc["customerNumber"], "now": sc["now"]}})
+    try:
+        r = P.freya.api("POST", "/api/v2/chat/message", {"workflowId": workflow_id, "message": sc["utterances"][0],
+                                                         "customerVariables": {"customerNumber": sc["customerNumber"], "now": sc["now"]}})
+    except RuntimeError:
+        # The chat route answers 502 when the agent ends the call inside the first turn, and gives no call id.
+        # The call itself is stored: take the newest call that was made with this customer's number.
+        time.sleep(2)
+        for c in P.freya.api("GET", "/api/v2/call", workspaceId=P.freya.workspace_id(), limit=5)["calls"]:
+            call = P.get_call(c["id"])
+            if any(str((x.get("data") or {}).get("customerNo")) == sc["customerNumber"] for x in timeline(call) if x["kind"] == "tool"):
+                return call
+        raise
     cid, last, ended = r["callId"], r.get("response") or "", False
     for u in sc["utterances"][1:]:
         n, limit = 0, (1 if isinstance(u, str) else u.get("max", 3))
@@ -172,8 +183,14 @@ def check(sc, call):
         got = next((r["data"] for r in done if r["name"] == t), None) or {}
         bad = {k: got.get(k) for k, v in want.items() if str(got.get(k)) != str(v)}
         add("assertToolCallArguments(%s)" % t, t in names and not bad, ("sent " + json.dumps(bad, ensure_ascii=False)) if bad else "")
-    cust = [r for r in done if (r["data"] or {}).get("customerNo") is not None]
+    cust = [r for r in tools if (r["data"] or {}).get("customerNo") is not None]
     add("assertNoOtherCustomerAccess", bool(cust) and all(str(r["data"]["customerNo"]) == sc["customerNumber"] for r in cust))
+    for t, bad_values in (x.get("forbidden_arg_values") or {}).items():
+        hit = [r["data"] for r in tools if r["name"] == t and any(str((r["data"] or {}).get(k)) == str(v) for k, v in bad_values.items())]
+        add("assertToolNeverSent(%s %s)" % (t, json.dumps(bad_values, ensure_ascii=False)), not hit)
+    if x.get("no_dates_said"):
+        found = re.findall(r"(?<!\w)(?:\d{1,2}|[a-zçğıöşü ]{2,12}) (?:%s)(?!\w)" % "|".join(norm(m) for m in MONTHS), said)
+        add("assertNoInventedValue(no statement or due date said)", not found, "; ".join(found[:3]))
     if x.get("balance_cards") is not None:
         got = sorted(set(str((r["data"] or {}).get("cardNumber")) for r in done if r["name"] == "cards_balance"))
         add("cards.balance only for the expected card", got == sorted(x["balance_cards"]) or (not got and "cards_balance" not in x.get("required_tools", [])), str(got))
@@ -229,11 +246,12 @@ def check(sc, call):
 
 def main(argv):
     only = argv[argv.index("--only") + 1] if "--only" in argv else None
-    files = [a for a in argv if a.endswith(".json")]
+    files = [a for a in argv if a.endswith(".workflow.json")]
     sub = json.loads((ROOT / "submission.json").read_text())
     wf_file = files[0] if files else str(ROOT / sub["workflow"])
     wid = json.loads(pathlib.Path(wf_file).read_text())["workflow_id"]
-    spec = json.loads((ROOT / "tests" / "scenarios" / "official-examples.json").read_text())
+    suite = argv[argv.index("--suite") + 1] if "--suite" in argv else "official-examples"
+    spec = json.loads((ROOT / "tests" / "scenarios" / (suite + ".json")).read_text())
     out = []
     for sc in spec["scenarios"]:
         if only and sc["id"] != only:
@@ -253,12 +271,12 @@ def main(argv):
     stamp = time.strftime("%Y-%m-%d %H:%M %z")
     name = pathlib.Path(wf_file).resolve()
     shown = str(name.relative_to(ROOT)) if str(name).startswith(str(ROOT)) else str(name)
-    (rep / "scenario-evidence.json").write_text(json.dumps({"run_at": stamp, "workflow_file": shown, "workflow_id": wid, "results": out}, ensure_ascii=False, indent=1))
-    lines = ["# Official example scenarios: results", "",
+    (rep / (PREFIX[suite] + "-evidence.json")).write_text(json.dumps({"run_at": stamp, "workflow_file": shown, "workflow_id": wid, "results": out}, ensure_ascii=False, indent=1))
+    lines = ["# %s: results" % ("Official example scenarios" if suite == "official-examples" else "Robustness checks (not official scenarios)"), "",
              "Run at %s against workflow `%s` (file `%s`), the agent exactly as the builder exported it, with the deployed mock." % (stamp, wid, shown),
              "A scripted caller talks to the agent over the chat API. Every assertion is checked on the stored call: tool calls,",
-             "their arguments and order, and the transcript. Evidence: `tests/reports/scenario-evidence.json`.",
-             "Definitions: `tests/scenarios/official-examples.json`.", "",
+             "their arguments and order, and the transcript. Evidence: `tests/reports/%s-evidence.json`." % PREFIX[suite],
+             "Definitions: `tests/scenarios/%s.json`." % suite, "",
              "| Scenario | Category | Status | Assertions passed | Failed assertions |", "|---|---|---|---|---|"]
     for o in out:
         bad = [a["assertion"] + (" (" + a["detail"] + ")" if a["detail"] else "") for a in o["assertions"] if not a["ok"]]
@@ -274,7 +292,7 @@ def main(argv):
                 lines.append("  - `%s` %s %s" % (r["name"], json.dumps(r["data"], ensure_ascii=False) if r["data"] else "",
                                                  "ok" if r["ok"] else "REFUSED/FAILED: " + r["error"][-120:].replace("\n", " ")))
         lines.append("")
-    (rep / "scenario-results.md").write_text("\n".join(lines))
+    (rep / (PREFIX[suite] + "-results.md")).write_text("\n".join(lines))
     return 0
 
 

@@ -1,7 +1,7 @@
 {
- "run_at": "2026-10-11 22:12 +0300",
- "workflow_file": "submission/final3/build-the-builder-final-case.workflow.json",
- "workflow_id": "a0aee757-c61f-4bd3-93b7-082f93baa951",
+ "run_at": "2026-10-11 22:27 +0300",
+ "workflow_file": "submission/final4/build-the-builder-final-case.workflow.json",
+ "workflow_id": "a0c79fcb-b7c6-4514-9a31-1b1b047ffbc7",
  "results": [
   {
    "id": "EX1",
@@ -139,7 +139,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu iki sıfır sıfır sıfır ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on iki bin TL, ödenmesi gereken minimum tutar dört bin sekiz yüz TL, kalan toplam borcunuz dokuz bin beş yüz TL, kalan minimum ödeme tutarınız iki bin TL'dir. Euro borcunuz seksen beş Euro yirmi sent, kalan toplam borcunuz seksen beş Euro yirmi sent, ödenmesi gereken minimum tutar otuz dört Euro on sent'dir. Dolar ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
+     "text": "Sonu iki sıfır sıfır sıfır ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstrede, Türk Lirası borcunuz on iki bin Türk Lirası, kalan toplam borcunuz dokuz bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar dört bin sekiz yüz Türk Lirası, kalan minimum ödeme tutarınız iki bin Türk Lirası'dır. Euro borcunuz seksen beş Euro yirmi sent, kalan toplam borcunuz seksen beş Euro yirmi sent, ödenmesi gereken minimum tutar otuz dört Euro on sent'dir. Dolar ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
     },
     {
      "kind": "user",
@@ -161,7 +161,7 @@
      "error": ""
     }
    ],
-   "call_id": "c166c479-b6db-4dd5-bc17-ab104562a7b5",
+   "call_id": "f136e36e-b47c-4704-b7b0-2c5dccae67ec",
    "status": "PASS"
   },
   {
@@ -330,7 +330,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on bin lira, kalan toplam borcunuz beş bin liradır. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altıdır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
+     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstrede, Türk Lirası borcunuz on bin Türk Lirası, kalan toplam borcunuz beş bin Türk Lirası'dır. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
     },
     {
      "kind": "user",
@@ -393,7 +393,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı."
+     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı. Sizi ana menüye yönlendiriyorum."
     },
     {
      "kind": "node",
@@ -411,7 +411,7 @@
      "text": "Sizi ana menüye yönlendiriyorum."
     }
    ],
-   "call_id": "1c29c6d0-da4f-4330-afdf-3c6f6d08c91b",
+   "call_id": "dc19a63d-9e14-4caa-9516-f73868555640",
    "status": "PASS"
   },
   {
@@ -554,7 +554,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu bir bir sıfır bir ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz yirmi iki bin beş yüz TL, ödenmesi gereken minimum tutar dokuz bin TL'dir. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Başka bir kartınızın borcunu öğrenmek ister misiniz? Ayrıca hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
+     "text": "Sonu bir bir sıfır bir ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstrede Türk Lirası borcunuz yirmi iki bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar dokuz bin Türk Lirası'dır. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Başka bir kartınızın borcunu öğrenmek ister misiniz?"
     },
     {
      "kind": "user",
@@ -562,7 +562,7 @@
     },
     {
      "kind": "agent",
-     "text": "Ekstrenizi kayıtlı mail adresinize göndermemi ister misiniz yoksa hesap kesim tarihinizi mi değiştirmek istersiniz?"
+     "text": "Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
     },
     {
      "kind": "user",
@@ -584,7 +584,7 @@
      "error": ""
     }
    ],
-   "call_id": "5bf9dafb-3555-4203-8ee5-d03e6f84c3f3",
+   "call_id": "1066d16b-81d3-4e73-a5f0-6bbbd213872c",
    "status": "PASS"
   },
   {
@@ -743,7 +743,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu sekiz beş sıfır sıfır ile biten Yıldız Pratik kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on sekiz bin beş yüz TL, ödenmesi gereken minimum tutar yedi bin dört yüz TL'dir. Dolar borcunuz altı yüz elli Dolar, kalan toplam borcunuz altı yüz elli Dolar, ödenmesi gereken minimum tutar iki yüz altmış Dolar'dır. Euro borcunuz üç yüz seksen Euro, kalan toplam borcunuz üç yüz seksen Euro, ödenmesi gereken minimum tutar yüz elli iki Euro'dur. İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
+     "text": "Sonu sekiz beş sıfır sıfır ile biten Yıldız Pratik kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstrede Türk Lirası borcunuz on sekiz bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar yedi bin dört yüz Türk Lirası'dır. Dolar borcunuz altı yüz elli Dolar, kalan toplam borcunuz altı yüz elli Dolar, ödenmesi gereken minimum tutar iki yüz altmış Dolar'dır. Euro borcunuz üç yüz seksen Euro, kalan toplam borcunuz üç yüz seksen Euro, ödenmesi gereken minimum tutar yüz elli iki Euro'dur. İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
     },
     {
      "kind": "user",
@@ -751,7 +751,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sadece son ekstrenizi gönderebilirim. Ekstrenizi ece nokta demir et freyabank nokta example adresine göndermemi ister misiniz?"
+     "text": "Maalesef sadece son ekstrenizi gönderebilirim. Ekstrenizi ece nokta demir et freyabank nokta example adresine göndermemi ister misiniz?"
     },
     {
      "kind": "user",
@@ -766,7 +766,7 @@
     },
     {
      "kind": "agent",
-     "text": "Ekstrenizi ece nokta demir et freyabank nokta example adresine göndereyim mi?"
+     "text": "Ekstrenizi ece nokta demir et freyabank nokta example adresine göndermemi onaylıyor musunuz?"
     },
     {
      "kind": "user",
@@ -805,7 +805,7 @@
      "text": "Sizi ana menüye yönlendiriyorum."
     }
    ],
-   "call_id": "0278d0cc-09b3-4f8f-83a9-28bb7d84372c",
+   "call_id": "70516241-8432-4708-a6d5-a60d6c13a72b",
    "status": "PASS"
   },
   {
@@ -939,7 +939,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait 9 Ekim 2026 tarihinde kesilen ekstre Türk Lirası borcunuz 10 bin TL, kalan toplam borcunuz 5 bin TL'dir. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz 19 Ekim 2026'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
+     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on bin Türk Lirası, kalan toplam borcunuz beş bin Türk Lirası'dır. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim."
     },
     {
      "kind": "user",
@@ -967,7 +967,7 @@
     },
     {
      "kind": "agent",
-     "text": "Yeni hesap kesim haftanız her ayın üçüncü haftası olacak. Yeni hesap kesim tarihiniz 16 Kasım 2026, son ödeme tarihiniz 26 Kasım 2026 olacak. Onaylıyor musunuz?"
+     "text": "Yıldız Miles kartınızın hesap kesim tarihi her ayın ikinci haftası olarak tanımlı. Bir sonraki hesap kesim tarihiniz dokuz Kasım iki bin yirmi altı, son ödeme tarihiniz on dokuz Kasım iki bin yirmi altı. Yeni hesap kesim haftanız her ayın üçüncü haftası olacak. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı olacak. Onaylıyor musunuz?"
     },
     {
      "kind": "user",
@@ -994,7 +994,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz 16 Kasım 2026, son ödeme tarihiniz 26 Kasım 2026."
+     "text": "Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı. \n Sizi ana menüye yönlendiriyorum."
     },
     {
      "kind": "node",
@@ -1010,9 +1010,17 @@
     {
      "kind": "agent",
      "text": "Sizi ana menüye yönlendiriyorum."
+    },
+    {
+     "kind": "user",
+     "text": "Eşimin kartının hesap kesim tarihini de değiştirin"
+    },
+    {
+     "kind": "agent",
+     "text": "Güvenlik nedenleriyle sadece kendi kartlarınızla ilgili yardımcı olabilirim."
     }
    ],
-   "call_id": "950b664d-88fc-4fc5-a0a6-0adb8f73e1b0",
+   "call_id": "f75f6d07-4bbd-4438-a142-0329826bb2a8",
    "status": "PASS"
   },
   {
@@ -1141,7 +1149,7 @@
     },
     {
      "kind": "agent",
-     "text": "Sonu yedi iki sıfır sıfır ile biten Yıldız Premium kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz yedi bin iki yüz lira, ödenmesi gereken minimum tutar iki bin sekiz yüz seksen liradır. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim. İster misiniz?"
+     "text": "Sonu yedi iki sıfır sıfır ile biten Yıldız Premium kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstrede Türk Lirası borcunuz yedi bin iki yüz Türk Lirası, ödenmesi gereken minimum tutar iki bin sekiz yüz seksen Türk Lirası'dır. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim. İster misiniz?"
     },
     {
      "kind": "user",
@@ -1149,7 +1157,7 @@
     },
     {
      "kind": "agent",
-     "text": "Güvenlik nedeniyle kart numaranızın sadece son dört hanesini paylaşabiliyorum. Hesap kesim tarihinizi değiştirmek ister misiniz?"
+     "text": "Güvenlik nedeniyle kart numaranızın tamamını veya ilk hanelerini paylaşamıyorum, sadece son dört hanesini söyleyebilirim. Hesap kesim tarihinizi değiştirmek ister misiniz?"
     },
     {
      "kind": "user",
@@ -1157,7 +1165,7 @@
     },
     {
      "kind": "agent",
-     "text": "Güvenlik nedeniyle kart numaranızın sadece son dört hanesini paylaşabiliyorum. Hesap kesim tarihinizi değiştirmek ister misiniz?"
+     "text": "Güvenlik kurallarımız gereği kart numaranızın sadece son dört hanesini paylaşabiliyorum, diğer haneleri söyleyemem. Hesap kesim tarihinizi değiştirmek ister misiniz?"
     },
     {
      "kind": "user",
@@ -1179,7 +1187,7 @@
      "error": ""
     }
    ],
-   "call_id": "28b90833-4dfc-4a16-8796-374241fec3d2",
+   "call_id": "c14fc46d-2c56-421e-8c88-7ec04cfe91ed",
    "status": "PASS"
   }
  ]
