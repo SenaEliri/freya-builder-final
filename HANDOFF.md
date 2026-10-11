@@ -1,5 +1,83 @@
 # Hand-off — candidate 2: runtime fixes on top of candidate 1 (11 Oct 2026)
 
+## Checkpoint — 11 Oct 2026, ~16:45 UTC (read this first)
+
+Repository: https://github.com/SenaEliri/freya-builder-final (`git ls-remote origin` shows the current branch heads).
+
+| Ref | Commit | What it is |
+|---|---|---|
+| tag `baseline-v5-validated` | `969ecad` | **Validated baseline v5 — submit this.** Code, exports (`submission/candidate-2/`), validation (`docs/VALIDATION.md`). |
+| branch `main` | head = the commit that added this section (previous head `45b59b7`) | v5 code, byte-identical to the tag for `builder/`, `tools/`, `tests/`, `submission/`, `freya.py`; later commits are docs only. Experimental code is never merged here. |
+| branch `experiment/conversation-quality` | c3.1 runtime `1d9e0b6`; chat-comparison tool `6cb0d02`; head = this section's commit | Experimental c3.1: code, tests, exports (`submission/candidate-3/`), live records, review (`docs/CONVERSATION_QUALITY.md`). |
+| original download | `~/Downloads/hack/build-the-builder` @ `0f70e8d` (untouched) | The teammate's candidate 1. |
+
+Agents on Freya (workspace `8d3b7eb2-9d8f-40fd-82b1-93cbf0352657`):
+
+| Candidate | Slot | Workflow | Agent | Published version | Runtime commit |
+|---|---|---|---|---|---|
+| candidate 1 (teammate, frozen, never written to) | `rb-brief-a` / `rb-brief-a-brief-b` | `bc5fe0d0-0d34-4e9a-bcb2-62dab24d3cc7` / `e382d2c5-7a09-42a0-96d8-0d1d60579e08` | `edf86627-20cc-41ce-be0d-51115a31061e` / `2b88bb81-311c-4e81-8858-37c60ea2ded3` | 3 / 5 | `f806122` |
+| **v5 baseline** | `rb-c2-brief-a` / `rb-c2-brief-a-brief-b` | `eb8c91b8-ef17-4e43-ad6b-831096b299dd` / `310fbf87-6c7c-4aef-bef3-fbc5709842e3` | `8cd8c4c7-81b9-4517-b3b0-90a14d6d6358` / `02348dd0-989b-4359-bdbe-7c925c22477f` | 5 / 4 | `9279ea0` |
+| c3.1 experimental | `rb-c3-brief-a` / `rb-c3-brief-a-brief-b` | `7fd77242-9be6-4fe1-805b-673e9b99c08c` / `0a367732-07cf-45da-a6e0-f72de353077a` | `25183cdb-43aa-4c5e-b427-a0680b1ca71e` / `d07c16c4-e607-4356-b53a-aaffc9c87523` | 2 / 2 | `1d9e0b6` |
+
+Do not publish to `rb-c2-*` (baseline) or `rb-brief-a*` (candidate 1); `tools/deploy_candidate.py` refuses the
+latter and needs `--update` for any existing slot.
+
+### What was tested
+
+- **Full validation — v5 only:** three frozen runs of the A and B suites (B 9/9 calls, every case 3/3; A 27/30
+  calls, 7/10 cases 3/3, the three misses traced to the platform: two proven, one probable), plus the affected cases
+  in every speech style. Details: `docs/VALIDATION.md`.
+- **Targeted checks only — c3.1 (not a three-run validation):** A plain 5/5, B plain 3/3, B pieces 3/3 (11/11); 18/18
+  parser counterexamples (baseline 13/18). Of its five changes only the discount answer occurred live. Details:
+  `docs/CONVERSATION_QUALITY.md`.
+- Offline: `python3 -m pytest -q tests` — 274 pass on `main`, 297 on the experiment branch.
+- Sentiment: the analytics' grey "No sentiment" = simulation calls are never sentiment-tagged by the platform (0 of
+  39 suite calls); only chat calls closed with `/chat/end` get the platform's tag. Unmeasured is not unhappy.
+
+### Running at this checkpoint (do not duplicate)
+
+- **Chat comparison** `tools/chat_compare.py` (local process on this Mac, started ~16:25 UTC; output
+  `qa/chat-compare/run.json`, log `results/chat-compare.log`; not committed while incomplete). Each chat used a new
+  practice customer and was closed with `/chat/end`. Completed chats (version, scenario, call id): v5 S1
+  `ff501c42`, c3.1 S1 `d235dcfa`, v5 S2 `238f998b`, c3.1 S2 `4c82582d`, v5 S3 `6f3d529d`, c3.1 S3 `0a17eb3d`, v5 S4
+  `7df63bfd`, c3.1 S4 `c9b62fd4` (full ids in `run.json`); S5 (both versions) was next, then up to 10 minutes of
+  waiting for the platform's post-call analysis. All completed chats passed their bank-ledger check.
+- No simulation is running (`GET /api/v2/simulations?workspaceId=…&status=running`). Simulation `d82d478f` (c3 B,
+  stuck in the judge for 2 h) was set to `paused`; it was my own test run.
+
+### Unfinished work and next steps
+
+1. **Sentiment comparison:** if `qa/chat-compare/run.json` has `"waited_s"`, the run finished: summarise it (both
+   transcripts per scenario side by side, the platform sentiment per call or "unmeasured") into
+   `docs/SENTIMENT_COMPARISON.md` on the experiment branch, commit `run.json` with it, push. If it did not finish:
+   read the analysis for the recorded call ids (`GET /api/v2/call/{id}`, tag `sentiment`, `analysis.summary`) and run
+   only the missing scenarios (do not repeat completed ones). Never assign a sentiment by hand.
+2. **c3.1 promotion** needs three frozen runs of the full A and B suites (commands in `docs/CONVERSATION_QUALITY.md`);
+   until then submit v5.
+3. **Hidden briefs (17:00 UTC):** build from `main` (v5 code): `python3 builder/build.py <brief.md> <api.json>` — it
+   creates new `rb-<brief name>` slots and exports to `submission/`.
+4. `submission/brief-a*.workflow.json` on `main` are still candidate-1 exports; the v5 exports are in
+   `submission/candidate-2/` — a team decision which to submit for the public briefs.
+
+### How to resume (no secrets in the repository)
+
+```bash
+cd ~/Downloads/hack/freya-builder-final        # the working clone (or a fresh clone of the repository)
+git fetch origin && git checkout main          # or experiment/conversation-quality
+cp .env.example env.sh && $EDITOR env.sh       # FREYA_API_KEY, FREYA_API_URL, FREYA_WORKSPACE_ID, FREYA_BANK_TEAM_KEY
+source env.sh
+python3 -m pytest -q tests
+python3 tools/run_cases_retry.py <agent_id> --brief A --out results/x.json     # one simulation at a time
+python3 tools/summarize_runs.py --evidence results/x.json                    # failures classified from call logs
+```
+
+Local-only, git-ignored state in the working clone: `.freya-agents.json` (slot -> workflow registry, including the
+`rb-c2-*` and `rb-c3-*` slots above; a fresh clone has none, so pass the ids from the table), `.personas.json`
+(persona cache; recreated automatically), `results/` (raw run logs). The credentials live in `~/Downloads/hack/env.sh`
+and are never committed.
+
+
+
 > **Submission baseline: v5** (tag `baseline-v5-validated`, exports `submission/candidate-2/`, validation
 > `docs/VALIDATION.md`). An experimental conversation-quality candidate **c3.1** (three wording fixes and two
 > behavioural parser fixes found in v5 transcripts) lives on branch `experiment/conversation-quality` with its own
