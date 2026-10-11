@@ -116,16 +116,18 @@ def test_cannot_pay_today_but_names_another_day():
     assert_clean_end(w, bank, "A")
 
 
-def test_cannot_afford_amount_gets_the_floor_then_the_attempts():
+def test_cannot_afford_amount_gets_the_floor_once_then_attempt_2():
+    """A26: the floor is offered once (on attempt 1's day, A30: the full amount was too much) with 'the rest stays
+    overdue'; refusing it uses attempt 1, so only attempt 2 (late band) names the floor again, on the deadline."""
     w, bank = call("A", [CARD], [
         ("I cannot afford that amount.", {"intent": "too_much", "reply": "no"}),
         ("No.", NO), ("No.", NO), ("No.", NO)])
     lines = agent(w)
-    assert any("I can record a payment of 412.35 dollars instead." in t for t in lines), text(w)
+    assert ("I can record a payment of 412.35 dollars instead. The rest stays overdue. "
+            "Could you pay 412.35 dollars on Friday 6 November?") in lines, text(w)
+    assert "Could you pay 412.35 dollars on Friday 13 November?" in lines, text(w)
+    assert sum("412.35" in t for t in lines) == 2, text(w)
     assert (bank.ledger["outcome"], bank.ledger["reason"]) == ("no_promise", "refused")
-    # attempt 1 is the floor (the full amount was too much); attempt 2 the floor on the deadline; nothing repeated
-    assert "Could you pay 412.35 dollars on Friday 6 November?" in lines
-    assert "Could you pay 412.35 dollars on Friday 13 November?" in lines
     assert_clean_end(w, bank, "A")
 
 

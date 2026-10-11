@@ -125,3 +125,54 @@ def test_correction_at_readback_refuses_some_products():
     w, bank, pol = walk("PUB-12", script=script)
     r = score_ledger(CASES["PUB-12"], bank.ledger)
     assert w.ended and r["pass"], "%s\n%s" % (r["failed"], LW.text_of(w))
+
+
+# candidate 2, live focused run (simulation 5553f9dc), PUB-06: 'That full amount is too much' was extracted with
+# pay_amount 'full amount'; it was taken as a proposal of the full amount, and 'too much' at the read-back had no
+# floor offer, so 'the rest stays overdue' was never said (judge fail; the ledger itself was right)
+LIVE_C2_PUB06 = [
+    ("Yes, this is Priya Nair.", {"reply": "yes"}),
+    ("Seventeenth of May nineteen eighty six.", {"reply": "none", "intent": "none", "topic": "none"}),
+    ("One five zero two.", {"reply": "yes"}),
+    ("Okay, why are you calling?", {"reply": "ack", "topic": "what_about"}),
+    ("That full amount is too much for me right now.", {"reply": "no", "intent": "too_much", "pay_amount": "full amount"}),
+    ("I can make a payment this Friday.", {"reply": "none", "intent": "propose", "topic": "none", "pay_date": "this Friday"}),
+    ("Yes, I confirm.", {"reply": "yes"}),
+]
+
+
+def test_live_c2_full_amount_too_much_gets_the_floor():
+    w, bank, pol = walk("PUB-06", script=LIVE_C2_PUB06)
+    text = LW.text_of(w)
+    r = score_ledger(CASES["PUB-06"], bank.ledger)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
+    assert "Which exact day" not in text and pol["lines"]["rest_overdue"] in text, text
+
+
+def test_live_c2_too_much_at_the_read_back_offers_the_floor():
+    script = LIVE_C2_PUB06[:4] + [
+        ("I can make a payment this Friday.", {"reply": "none", "intent": "propose", "pay_date": "this Friday"}),
+        ("That is too much money for me to pay all at once.", {"reply": "no", "intent": "too_much"}),
+        ("Yes, I can do that.", {"reply": "yes"}),
+        ("Yes, I confirm.", {"reply": "yes"})]
+    w, bank, pol = walk("PUB-06", script=script)
+    text = LW.text_of(w)
+    assert pol["lines"]["rest_overdue"] in text, text
+    assert [(p["amount"], p["date"]) for p in bank.ledger["promises"]] == [(637.5, "2026-10-16")], text
+
+
+# candidate 2 v1, live in_words run (simulation 79b38400), PUB-06: the floor was offered for today, then again as
+# attempt 1 on Friday; the judge failed 'minimum payment offered once'. Now the one floor offer carries Friday.
+def test_live_c2_in_words_floor_named_once():
+    script = LIVE_C2_PUB06[:4] + [
+        ("That is too much for me to pay right now.", {"reply": "no", "intent": "too_much"}),
+        ("Yes, I can pay six hundred and thirty-seven dollars and fifty cents this Friday the sixteenth of October.",
+         {"reply": "yes", "pay_date": "this Friday the sixteenth of October",
+          "pay_amount": "six hundred and thirty-seven dollars and fifty cents"}),
+        ("Yes, I confirm.", {"reply": "yes"})]
+    w, bank, pol = walk("PUB-06", script=script)
+    text = LW.text_of(w)
+    r = score_ledger(CASES["PUB-06"], bank.ledger)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
+    offers = [t for k, t, _ in LW.events(w) if k == "agent" and "637.50" in t and not t.startswith(("So that is", "Your promise"))]
+    assert len(offers) == 1, text

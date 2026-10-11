@@ -104,7 +104,7 @@ def extraction_schema(policy):
                          "'200 dollars', 'the minimum', 'four hundred and fifty'), copied exactly, with any cents words "
                          "('six hundred and thirty-seven dollars and fifty'). An amount named by reference ('the minimum', "
                          "'the full amount', 'that') is copied as said. Empty if none, or if they only say what they "
-                         "cannot pay ('I can't pay anything').")},
+                         "cannot pay or what is too much ('I can't pay anything', 'the full amount is too much').")},
     ]
 
 

@@ -980,6 +980,8 @@ PAY_INTENT = re.compile(r"\b(i|we)('ll|'d| will| would| can| could| shall| am ab
                         r" plan to| intend to| am going to|'m going to| would like to|'d like to| might)\s+(\w+\s+)?"
                         r"(pay|transfer|send|settle|manage|do it|do that|make it|make the payment)\b|"
                         r"\bcan (i|we) pay\b|\b(pay|paying)\b[^.;]{0,40}\b(then|that day)\b")
+TOO_MUCH = re.compile(r"\b(too much|too high|too expensive|too big|can't afford|cannot afford|can not afford|unaffordable|"
+                      r"more than i (can|have))\b")
 SUPERSEDED = re.compile(r"\b(instead of|rather than)\s+(on\s+)?(the\s+)?[a-z0-9]+(\s+of\s+[a-z]+)?")
 
 
@@ -1053,6 +1055,10 @@ def read_amount(st, inp):
         return {"status": "none"}
     if utt and negated_in(utt, ph):
         return {"status": "none", "negated": True}
+    u, n = norm(utt), norm(ph)
+    clause = next((c for c in CLAUSES.split(u) if n and n in c), u) if n in u else u
+    if TOO_MUCH.search(clause) or (inp.get("intent") == "too_much" and not PAY_INTENT.search(clause)):
+        return {"status": "none", "too_much": True}  # 'that full amount is too much': a complaint, not an offer
     span = amount_span(utt, ph) if utt else ph
     r = parse_amount(span)
     if r["status"] == "none":
@@ -2051,6 +2057,11 @@ def readback_or_close(st, out, V, P, pm, today):
         st["phase"] = "confirm"
         st.setdefault("cl", {}).pop("confirm", None)
         out.say.append(L(P, "readback", pm, items=join_and(items)))
+        partial = [p for p in agreed if p["agreed"]["amount"] < p["past_due"] - 0.005 and not p.get("rest_said")]
+        if partial:
+            for p in partial:
+                p["rest_said"] = True
+            out.say.append(L(P, "rest_overdue", pm))
         out.say.append(L(P, "confirm_question", pm))
         out.route = "say"
         return
@@ -2429,22 +2440,7 @@ def step_offer(st, inp, V, P, out, pm, today, asked_before=None):
     if proposes:
         return single_proposal(st, inp, V, P, out, pm, today, p, ar, dres)
     if intent == "too_much":
-        p["too_much"] = True
-        if not p["floor_offered"] and p["floor"] < p["past_due"] - 0.005:
-            p["floor_offered"] = True
-            date = off.get("date")
-            p["offer"] = {"amount": p["floor"], "date": date, "kind": "floor"}
-            out.say.append(L(P, "floor_offer", pm, amount=money(p["floor"], cw(P))))
-            out.say.append(L(P, "rest_overdue", pm))
-            p["rest_said"] = True
-            if not date:
-                out.say.append(L(P, "ask_exact_day", pm))
-            elif date == d_iso(today):
-                out.say.append(L(P, "first_ask_single", pm) if not multi else offer_text(P, pm, p, p["floor"], date, today, multi, False))
-            else:
-                out.say.append(offer_text(P, pm, p, p["floor"], date, today, multi, False))
-            return
-        return next_attempt(st, out, V, P, pm, today, p)
+        return offer_floor(st, out, V, P, pm, today, p)
     acked_info = reply == "ack" and asked_before in ("info", "hold")
     if reply == "yes" or (reply == "ack" and off and off.get("kind") != "today" and not acked_info):
         if off:
@@ -2493,6 +2489,33 @@ def step_offer(st, inp, V, P, out, pm, today, asked_before=None):
         return next_attempt(st, out, V, P, pm, today, p)
     out.say.append(L(P, "repeat", pm))
     return repeat_pending(st, out, V, P, pm, today)
+
+
+def offer_floor(st, out, V, P, pm, today, p):
+    """'The full amount is too much' (A26): offer the floor once, on the pending day, and say the rest stays overdue.
+    Said again after the floor was offered, it is a refusal of the floor (the next persuasion attempt)."""
+    multi = len(st["products"]) > 1
+    p["too_much"] = True
+    if p["floor_offered"] or p["floor"] >= p["past_due"] - 0.005:
+        return next_attempt(st, out, V, P, pm, today, p)
+    p["floor_offered"] = True
+    off = p.get("offer") or {}
+    date = off.get("date")
+    if off.get("kind") == "today" or (multi and date == d_iso(today)):
+        # 'too much' answers the question about today: the one floor offer (A26) carries attempt 1's day (A30), so
+        # the floor is named once; refusing it moves on to attempt 2 (refused offers are never repeated, A31)
+        a1 = attempt_offer(p, P, today, 1)
+        date = a1["date"] if a1 else date
+    p["offer"] = {"amount": p["floor"], "date": date, "kind": "floor"}
+    out.say.append(L(P, "floor_offer", pm, amount=money(p["floor"], cw(P))))
+    out.say.append(L(P, "rest_overdue", pm))
+    p["rest_said"] = True
+    if not date:
+        out.say.append(L(P, "ask_exact_day", pm))
+    elif date == d_iso(today):
+        out.say.append(L(P, "first_ask_single", pm) if not multi else offer_text(P, pm, p, p["floor"], date, today, multi, False))
+    else:
+        out.say.append(offer_text(P, pm, p, p["floor"], date, today, multi, False))
 
 
 def single_proposal(st, inp, V, P, out, pm, today, p, ar, dres):
@@ -2673,10 +2696,11 @@ def step_confirm(st, inp, V, P, out, pm, today):
             prev = p.get("agreed") or {}
             p["status"] = "open"
             p["offer"] = {"amount": prev.get("amount", p["past_due"]), "date": prev.get("date"), "kind": "change"}
-            if intent == "too_much" and inp["ar"].get("status") in ("none", None):
-                p["too_much"] = True
         st["phase"] = "negotiate"
         st["change_asked"] = False
+        if targets and intent == "too_much" and not has_values:
+            st["cur"] = st["products"].index(targets[0])
+            return offer_floor(st, out, V, P, pm, today, targets[0])
         if len(targets) > 1:
             return apply_group(st, inp, V, P, out, pm, today, inp["ar"], inp["dres"], targets)
         if targets:
