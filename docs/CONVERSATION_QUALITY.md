@@ -122,13 +122,14 @@ agent config); the only workflow difference anywhere is the decide code, which t
 | B pieces, PUB-11/12/13 (`10de0437`) | 3/3 |
 
 - **11/11 calls passed** (bank records and the judge's conversation checks); raw outputs `qa/live-results/c3.1/`.
-- Exercised live: change 3 (PUB-05 "Can I get a discount since I can't pay anything right now?" -> "I'm not able to
-  offer a discount. Thank you and goodbye.", passed). **Not exercised live**: changes 1, 2, 4, 5 (no service failure,
-  no event mentioned during identity, no "because my salary..." sentence, no month-only answer happened); they rest on
-  the offline tests and counterexamples only.
-- Later, in the chat comparison (`docs/SENTIMENT_COMPARISON.md`, one chat per version, scripted customer):
-  changes 3, 4 and 5 occurred in live chats with bank records identical to v5's; change 2's scenario did not
-  differentiate (v5 also read that date of birth correctly); change 1 still did not occur.
+- In these simulations only change 3 occurred (PUB-05 "Can I get a discount since I can't pay anything right now?"
+  -> "I'm not able to offer a discount. Thank you and goodbye.", passed). Changes 1, 2, 4 and 5 did not occur in them
+  (no service failure, no event mentioned during identity, no "because my salary..." sentence, no month-only answer).
+- **Later chat checks** (`docs/SENTIMENT_COMPARISON.md`, branch `experiment/conversation-quality`): one chat per
+  version per scenario through the chat API, scripted customer, no judge, extraction model of chat calls unverified.
+  These are supplementary diagnostics, not official simulation passes. Changes **3, 4 and 5** occurred, with bank
+  records identical to v5's. **Change 2 did not differentiate** the candidates (v5 also read that date of birth
+  correctly). **Change 1 remained unexercised.**
 - Single runs of 8 of the 13 public cases, plain and pieces only. The baseline has three frozen runs of all 13 cases
   plus every speech style; c3.1 has neither.
 
@@ -136,8 +137,9 @@ agent config); the only workflow difference anywhere is the decide code, which t
 
 **c3.1 does not yet have sufficient evidence to replace the baseline. Submit the validated baseline v5** (tag
 `baseline-v5-validated`, `submission/candidate-2/`). c3.1 passed every targeted live check (11/11) and all offline
-checks, but it has single runs on 8 of 13 cases, two of its five changes are behavioural parser changes, and four of
-the five were never exercised live. Before c3.1 could replace v5 it needs the same evidence v5 has — three frozen runs
+checks, but it has single runs on 8 of 13 cases, two of its five changes are behavioural parser changes, change 1
+was never exercised, change 2 did not differentiate the candidates live, and changes 4 and 5 were seen only in single
+supplementary chat checks, not in official simulations. Before c3.1 could replace v5 it needs the same evidence v5 has — three frozen runs
 of the full A and B suites (and ideally the speech styles):
 
 ```bash

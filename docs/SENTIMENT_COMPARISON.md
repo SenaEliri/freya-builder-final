@@ -4,6 +4,18 @@
 version per scenario with a scripted customer. It is a conversation-quality probe, not a validation, and it does not
 promote c3.1 (see `docs/CONVERSATION_QUALITY.md` section 5).
 
+**Status: limited, supplementary diagnostic.** These are chat-API calls with a scripted customer and no judge. Their
+bank-ledger checks and sentiment labels are **not official simulation passes**: official scoring reads the bank
+records, then a judge checks policy and honesty, three runs per customer, and sentiment is not part of it (kit README).
+Evidence on the review's concerns (calls and workflows re-read, nothing new run; details in `docs/HIDDEN_BRIEFS_READINESS.md` on `main`):
+
+| Concern | Finding | Kind |
+|---|---|---|
+| Chat skips a first code step | Does not apply: the workflows start at a conversation node (`open`, no pre-actions). In all ten calls 6–8 `code_exec` steps completed `success`, with 0 errors, and the bank tools ran | documented limitation (kit `docs/api.md`); observed not to occur |
+| Chat uses another model than simulations | Dialogue: the published `llmConfig` = `experimental-5`, the required model. Routing: every transition is `exact`, so no model is involved. Extraction: the chat API takes no override, the config field is `null`, and the call record names no model, so **unverified** | partly observed, partly unverified |
+| Scripted driver breaks on new wording | Answered coherently in all ten calls: every line answers the agent's question, and the "Okay." fallback was never used. It is a keyword script that knew both versions' wording in advance, so it cannot surface unexpected wording | observed; limitation by design |
+| Sentiment vs scoring | Separate: sentiment is not in the official scoring | documented |
+
 ## Result in one table
 
 | Scenario (public case) | c3.1 change it exercises | v5 sentiment | c3.1 sentiment | Bank check v5 / c3.1 | What differs in the transcript |
@@ -18,7 +30,7 @@ promote c3.1 (see `docs/CONVERSATION_QUALITY.md` section 5).
   "unavailable", never as a pass or a failure. Every value is the platform's own tag
   (`{"tag": "sentiment", "source": "system"}`), read back from the call. None was assigned here. Values seen: −1, −0.5,
   0.5, 1 (the earlier smoke tests showed 0 = neutral). Re-read at 16:35 UTC: unchanged.
-- **Bank: 10/10 ledgers pass** the kit's scorer (`tools/score.py`: outcome and reason, each promise's product, amount
+- **Bank: 10/10 ledgers pass** (a diagnostic check, not an official pass) the kit's scorer (`tools/score.py`: outcome and reason, each promise's product, amount
   and date, notes, callbacks, transfers, `close_call` last, no account tool before verification). Re-read from the
   practice bank after the run: identical to what the run recorded. Every tool call returned ok.
 - **Sentiment differs only in S1.** In S2 and S4 it is the same although c3.1's wording is shorter or more focused.
