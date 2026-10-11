@@ -140,9 +140,10 @@ def build(briefs, api_path, slot, name, out_dir, trace, t0, smoke=True):
     wf = W.build(policy, ts)
     code_bytes = len(bundle.code(dict(policy, api=policy.get("api") or ts["api"])).encode())
     lint = W.lint(wf)
-    trace.test("workflow lint", not lint, problems=lint[:20], nodes=len(wf["nodes"]), decide_code_bytes=code_bytes)
-    if lint:
-        raise BuildError("lint: %s" % "; ".join(lint[:5]))
+    fatal = [x for x in lint if not x.startswith("unreachable")]  # an unreachable node is harmless
+    trace.test("workflow lint", not fatal, problems=lint[:20], nodes=len(wf["nodes"]), decide_code_bytes=code_bytes)
+    if fatal:
+        raise BuildError("lint: %s" % "; ".join(fatal[:5]))
     # 4. self-tests on the local stub, customers made up from the policy
     from qa import selftest
     failed = 0

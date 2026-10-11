@@ -268,7 +268,7 @@ def build(policy, toolspec):
            always("v_wrong")]
     nodes["verify"] = api_node("verify", T["verify_identity"],
                                A.body("verify_identity", cid=1, field="{{v_field}}", answer="{{v_answer}}"), vt)
-    for nm in ("v_next", "v_wrong", "v_swapped", "v_unreadable", "v_tech"):
+    for nm in ("v_next", "v_wrong", "v_unreadable", "v_tech") + (("v_swapped",) if swap else ()):
         nodes[nm] = conv(nm, "say_" + nm, extraction=ex)
     nodes["v_done"] = conv("v_done", "say_v_done", extraction=ex, to="account")
     pmap = [{"path": "data." + A.rs("get_account", "products"), "variable": "account_products"}]

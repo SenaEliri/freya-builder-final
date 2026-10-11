@@ -1,0 +1,182 @@
+{
+ "identity": {
+  "questions": [
+   {
+    "field": "company_number",
+    "kind": "digits",
+    "length": 8
+   },
+   {
+    "field": "founded_year",
+    "kind": "year"
+   }
+  ],
+  "max_wrong": 2,
+  "swap_hint": null
+ },
+ "calendar": {
+  "weekend": [
+   5,
+   6
+  ],
+  "holidays": [
+   "2026-11-11",
+   "2026-12-25",
+   "2026-12-31"
+  ]
+ },
+ "bands": [
+  {
+   "name": "stage1",
+   "min": 1,
+   "max": 14,
+   "deadline_kind": "calendar_days",
+   "deadline_n": 20,
+   "attempts": 1
+  },
+  {
+   "name": "stage2",
+   "min": 15,
+   "max": 90,
+   "deadline_kind": "business_days",
+   "deadline_n": 5,
+   "attempts": 2
+  }
+ ],
+ "first_ask": {
+  "date_rule": "today",
+  "amount_rule": "full"
+ },
+ "attempts": [
+  {
+   "n": 1,
+   "date_rule": "end_of_week",
+   "amount_rule": "full_or_floor",
+   "bands": null
+  },
+  {
+   "n": 2,
+   "date_rule": "deadline",
+   "amount_rule": "floor",
+   "bands": [
+    "stage2"
+   ]
+  }
+ ],
+ "products": {
+  "term_loan": {
+   "floor_field": "instalment"
+  },
+  "revolving_credit": {
+   "floor_field": "min_repayment"
+  }
+ },
+ "outcomes": {
+  "promise": [
+   "PROMISE_TO_PAY",
+   null
+  ],
+  "paid": [
+   "ALREADY_PAID",
+   null
+  ],
+  "transfer_restructuring": [
+   "TRANSFERRED",
+   "PLAN"
+  ],
+  "transfer_human": [
+   "TRANSFERRED",
+   "PERSON"
+  ],
+  "transfer_support": [
+   "TRANSFERRED",
+   "HARDSHIP"
+  ],
+  "refused": [
+   "NO_PROMISE",
+   "REFUSED"
+  ],
+  "hardship": [
+   "NO_PROMISE",
+   "HARDSHIP"
+  ],
+  "dispute": [
+   "NO_PROMISE",
+   "DISPUTE"
+  ],
+  "service_error": [
+   "NO_PROMISE",
+   "SYSTEM"
+  ],
+  "id_failed": [
+   "ID_FAILED",
+   "WRONG"
+  ],
+  "id_declined": [
+   "ID_FAILED",
+   "REFUSED"
+  ],
+  "callback": [
+   "NO_CONTACT",
+   "CALLBACK"
+  ],
+  "no_callback": [
+   "NO_CONTACT",
+   "NO_CALLBACK"
+  ],
+  "wrong_number": [
+   "NO_CONTACT",
+   "WRONG_NUMBER"
+  ],
+  "deceased": [
+   "NO_CONTACT",
+   "DECEASED"
+  ],
+  "unclear": [
+   "NO_CONTACT",
+   "UNCLEAR"
+  ]
+ },
+ "queues": {
+  "restructuring": "WORKOUT",
+  "human": "CREDIT_CONTROL",
+  "support": "SERVICE"
+ },
+ "callback": {
+  "days": [
+   "next_business_day"
+  ],
+  "start": "08:30",
+  "end": "16:00",
+  "after_now": true
+ },
+ "notes": {
+  "enabled": true,
+  "reasons": {
+   "refused": "NP-REF",
+   "hardship": "NP-HARD",
+   "dispute": "NP-DISP",
+   "paid": "PAID",
+   "service_error": "NP-TECH"
+  }
+ },
+ "multi": {
+  "enabled": true
+ },
+ "dates": {
+  "next_weekday": "following_week",
+  "this_weekday": "current_week"
+ },
+ "interrupts": {
+  "precedence": [
+   "hardship"
+  ]
+ },
+ "required_lines": {
+  "opening": "Good morning, this is Kestrel Business Finance's automated assistant",
+  "deceased": "Please accept my condolences.",
+  "after_promise": "You will receive written confirmation by email.",
+  "rest_overdue": "Any remaining balance stays overdue.",
+  "confirm_question": "Is that right?"
+ }
+}

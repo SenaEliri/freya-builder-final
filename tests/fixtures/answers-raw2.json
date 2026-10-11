@@ -1,0 +1,271 @@
+{
+ "amounts": {
+  "products": {
+   "term_loan": {
+    "phrase": "term loan {reference}",
+    "floor_field": "instalment"
+   },
+   "revolving_credit": {
+    "phrase": "revolving credit line {reference}",
+    "floor_field": "min_repayment"
+   }
+  },
+  "currency_word": null,
+  "first_ask_single": "the full overdue amount, today",
+  "first_ask_multi": "ask once if both can be paid today",
+  "rest_overdue": "Any remaining balance stays overdue.",
+  "below_floor": null,
+  "never_ask_how_much": true
+ },
+ "calendar": {
+  "weekend": [
+   5,
+   6
+  ],
+  "holidays": [
+   "2026-11-11",
+   "2026-12-25",
+   "2026-12-31"
+  ],
+  "next_weekday": "following_week",
+  "this_weekday": "current_week",
+  "numeric_order": null
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "company_number",
+    "label": "the company registration number",
+    "ask": "Could you tell me the company registration number?",
+    "kind": "digits",
+    "length": 8,
+    "date_order": null,
+    "upper": false,
+    "keep_spaces": false
+   },
+   {
+    "field": "founded_year",
+    "label": "the year the company was founded",
+    "ask": "Could you tell me the year the company was founded?",
+    "kind": "year",
+    "length": 4,
+    "date_order": null,
+    "upper": false,
+    "keep_spaces": null
+   }
+  ],
+  "max_wrong": 2,
+  "swap_hint": null,
+  "swap_ask": null,
+  "fail_say": "tell them to call the number on their latest statement",
+  "explain_once": "it protects the company's account",
+  "decline_after": 2
+ },
+ "bands": {
+  "first_ask": {
+   "date_rule": "today",
+   "amount_rule": "full"
+  },
+  "bands": [
+   {
+    "name": "Stage 1",
+    "min": 1,
+    "max": 14,
+    "deadline_kind": "calendar_days",
+    "deadline_n": 20,
+    "attempts": 1
+   },
+   {
+    "name": "Stage 2",
+    "min": 15,
+    "max": 90,
+    "deadline_kind": "business_days",
+    "deadline_n": 5,
+    "attempts": 2
+   }
+  ],
+  "attempts": [
+   {
+    "n": 1,
+    "date_rule": "end_of_week",
+    "amount_rule": "full_or_floor",
+    "bands": [
+     "Stage 1",
+     "Stage 2"
+    ]
+   },
+   {
+    "n": 2,
+    "date_rule": "deadline",
+    "amount_rule": "floor",
+    "bands": [
+     "Stage 2"
+    ]
+   }
+  ]
+ },
+ "third_party": {
+  "callback_days": [
+   "next_business_day"
+  ],
+  "callback_start": "08:30",
+  "callback_end": "16:00",
+  "after_now": true,
+  "max_asks": 2,
+  "condolence": "Please accept my condolences.",
+  "wrong_number_say": null
+ },
+ "outcomes": {
+  "promise": [
+   "PROMISE_TO_PAY",
+   null
+  ],
+  "paid": [
+   "ALREADY_PAID",
+   null
+  ],
+  "transfer_restructuring": [
+   "TRANSFERRED",
+   "PLAN"
+  ],
+  "transfer_human": [
+   "TRANSFERRED",
+   "PERSON"
+  ],
+  "transfer_support": [
+   "TRANSFERRED",
+   "HARDSHIP"
+  ],
+  "refused": [
+   "NO_PROMISE",
+   "REFUSED"
+  ],
+  "hardship": [
+   "NO_PROMISE",
+   "HARDSHIP"
+  ],
+  "dispute": [
+   "NO_PROMISE",
+   "DISPUTE"
+  ],
+  "service_error": [
+   "NO_PROMISE",
+   "SYSTEM"
+  ],
+  "id_failed": [
+   "ID_FAILED",
+   "WRONG"
+  ],
+  "id_declined": [
+   "ID_FAILED",
+   "REFUSED"
+  ],
+  "callback": [
+   "NO_CONTACT",
+   "CALLBACK"
+  ],
+  "no_callback": [
+   "NO_CONTACT",
+   "NO_CALLBACK"
+  ],
+  "wrong_number": [
+   "NO_CONTACT",
+   "WRONG_NUMBER"
+  ],
+  "deceased": [
+   "NO_CONTACT",
+   "DECEASED"
+  ],
+  "unclear": [
+   "NO_CONTACT",
+   "UNCLEAR"
+  ]
+ },
+ "interrupts": {
+  "hardship": "illness, a bereavement, the business closing down",
+  "support_queue": "SERVICE",
+  "sympathy": "one sentence of sympathy",
+  "support_offer": "offer the customer service desk",
+  "dispute": "Disputes the debt",
+  "dispute_say": null,
+  "already_paid": "Already paid",
+  "paid_say": "payments take up to two business days to show",
+  "restructuring": "Wants a new repayment plan",
+  "restructuring_queue": "WORKOUT",
+  "human": "Insists on a person after one offer of help",
+  "human_queue": "CREDIT_CONTROL",
+  "human_ask_first": true,
+  "scam_say": null,
+  "robot_say": null,
+  "no_info_say": null,
+  "change_say": null,
+  "precedence": [
+   "hardship",
+   "restructuring",
+   "human",
+   "already_paid",
+   "dispute"
+  ],
+  "refuse_talk_times": null
+ },
+ "multi": {
+  "multi_enabled": true,
+  "ask_all_today": true,
+  "per_product_attempts": true,
+  "clamp_to_deadline": true,
+  "single_readback": false,
+  "notes_enabled": true,
+  "note_reasons": {
+   "refused": "NP-REF",
+   "hardship": "NP-HARD",
+   "dispute": "NP-DISP",
+   "paid": "PAID",
+   "service_error": "NP-TECH"
+  },
+  "notes_on_transfer": false,
+  "closing_reason": null
+ },
+ "sentences": {
+  "opening": "Good morning, this is Kestrel Business Finance's automated assistant, and we may record this call. May I speak with {contact_name} of {company_name}?",
+  "person_question": "May I speak with {contact_name} of {company_name}?",
+  "third_party_ask": "When will {contact_name} be back?",
+  "third_party_no_info": null,
+  "id_intro": null,
+  "id_explain": "This protects the company's account.",
+  "id_fail": "Please call the number on your latest statement.",
+  "id_swapped": null,
+  "verified": null,
+  "disclosure_intro": null,
+  "first_ask_single": "The full overdue amount is {overdue_amount}, can you pay that today?",
+  "first_ask_multi": "You have multiple overdue facilities; can both be paid today?",
+  "confirm_question": "Is that right?",
+  "after_promise": "You will receive written confirmation by email.",
+  "rest_overdue": "Any remaining balance stays overdue.",
+  "below_floor": null,
+  "paid_reply": "Payments take up to two business days to show.",
+  "dispute_reply": null,
+  "scam_reply": null,
+  "robot_reply": null,
+  "no_info": null,
+  "change_in_app": null,
+  "sympathy": null,
+  "support_offer": "Would you like me to transfer you to the customer service desk?",
+  "help_first": null,
+  "transfer": null,
+  "deceased": "Please accept my condolences.",
+  "wrong_number": null,
+  "goodbye": null,
+  "forbidden_before_identity": [
+   "amounts",
+   "facility names",
+   "arrears",
+   "overdue"
+  ],
+  "call_variables": [
+   "customer_id",
+   "company_name",
+   "contact_name",
+   "now"
+  ]
+ }
+}

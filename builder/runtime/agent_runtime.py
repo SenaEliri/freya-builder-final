@@ -632,9 +632,29 @@ def parse_code(text, upper=True, keep_spaces=False):
     for r in runs:
         if best is None or len("".join(r)) >= len("".join(best)):
             best = r
-    code = (" " if keep_spaces else "").join(best)
-    if len(code.replace(" ", "")) < 2:
+    compact = "".join(best)
+    if len(compact) < 2:
         return None
+    code = compact
+    if keep_spaces:
+        up = compact.upper()
+        m = re.match(r"^([A-Z]{1,2}\d[A-Z\d]?)(\d[A-Z]{2})$", up) or re.match(r"^([A-Z]\d[A-Z])(\d[A-Z]\d)$", up)
+        if m:  # postcode shapes with a fixed inner space (outward + inward part)
+            code = m.group(1) + " " + m.group(2)
+            code = code if upper else code.lower()
+        else:  # keep the groups as said: multi-character pieces stay apart, spelled characters join up
+            groups, cur = [], ""
+            for piece in best:
+                if len(piece) == 1:
+                    cur += piece
+                else:
+                    if cur:
+                        groups.append(cur)
+                        cur = ""
+                    groups.append(piece)
+            if cur:
+                groups.append(cur)
+            code = " ".join(groups)
     return code.upper() if upper else code
 
 

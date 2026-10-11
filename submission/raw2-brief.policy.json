@@ -1,0 +1,356 @@
+{
+ "version": 1,
+ "bank": "Kestrel Business Finance",
+ "address": "{title} {last_name}",
+ "lines": {
+  "opening": "Good morning, this is Kestrel Business Finance's automated assistant, and we may record this call. May I speak with {contact_name} of {company_name}?",
+  "person_question": "May I speak with {contact_name} of {company_name}?",
+  "third_party_ask": "When will {contact_name} be back?",
+  "third_party_no_info": "I'm sorry, I can only speak with {title} {last_name} directly.",
+  "callback_window": "I can only arrange a call on the next business day, between 08:30 and 16:00. Is there a time in that window that works?",
+  "callback_done": "Thank you. We will call back on {when}.",
+  "deceased": "Please accept my condolences.",
+  "wrong_number": "I'm sorry for the inconvenience.",
+  "id_intro": "Before I continue, I need to ask you two security questions.",
+  "id_explain": "This protects the company's account.",
+  "id_fail": "Please call the number on your latest statement.",
+  "id_retry": "That does not match our records. Could you tell me {label} again?",
+  "id_swapped": "Could you say the month as a word, please?",
+  "id_unreadable": "Sorry, I didn't catch that. Could you tell me {label} again?",
+  "id_more": "Could you give me the rest of {label}, please?",
+  "verified": "Thank you, your identity is verified.",
+  "disclosure_intro": "I am calling from Kestrel Business Finance about a late payment.",
+  "disclosure_item": "Your {product} has {past_due} past due, {days_late} days late.",
+  "first_ask_single": "The full overdue amount is {overdue_amount}, can you pay that today?",
+  "first_ask_multi": "You have multiple overdue facilities; can both be paid today?",
+  "offer": "Could you pay {amount} on {date}?",
+  "floor_offer": "I can record a payment of {amount} instead.",
+  "ask_exact_day": "Which exact day would that be?",
+  "next_business_day_offer": "{asked} is not a business day. The next business day is {date}. Would that work?",
+  "deadline_offer": "The latest date I can record is {date}. Can you pay by then?",
+  "past_date": "That date has already passed. Which day from today on would work?",
+  "date_conflict": "Just to be sure, did you mean {date}?",
+  "readback": "So that is {items}.",
+  "readback_item": "{amount} for your {product} on {date}",
+  "readback_clamped": "{amount} for your {product} on {date}, the latest date I can record for it",
+  "recorded": "Your promise of {amount} for your {product} on {date} is recorded.",
+  "confirm_question": "Is that right?",
+  "after_promise": "You will receive written confirmation by email.",
+  "rest_overdue": "Any remaining balance stays overdue.",
+  "below_floor": "I'm sorry, I can't record an amount below {floor}.",
+  "paid_reply": "Payments take up to two business days to show.",
+  "scam_reply": "You can verify this call by phoning Kestrel Business Finance's customer service number.",
+  "robot_reply": "I am Kestrel Business Finance's digital assistant.",
+  "no_info": "I'm sorry, I don't have that information.",
+  "change_in_app": "A recorded promise can't be changed in this call.",
+  "record_failed": "I'm sorry, I could not record the promise for your {product} because of a technical problem.",
+  "help_first": "Before I transfer you, is there anything I can help you with myself?",
+  "sympathy": "I'm very sorry to hear that.",
+  "support_offer": "Would you like me to transfer you to the customer service desk?",
+  "transfer": "I will transfer you now.",
+  "dispute_reply": "I understand, thank you for letting me know.",
+  "anything_else": "Is there anything else I can help you with?",
+  "repeat": "Sorry, could you repeat that, please?",
+  "which_product": "Which product do you mean: {products}?",
+  "goodbye": "Thank you for your time. Goodbye.",
+  "tech_problem": "I'm sorry, we are having a technical problem, so I can't continue this call right now.",
+  "go_on": "Please go on.",
+  "floor_info": "The lowest amount I can record for your {product} is {amount}."
+ },
+ "person": {
+  "max_asks": 2
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "company_number",
+    "label": "the company registration number",
+    "ask": "Could you tell me the company registration number?",
+    "kind": "digits",
+    "length": 8
+   },
+   {
+    "field": "founded_year",
+    "label": "the year the company was founded",
+    "ask": "Could you tell me the year the company was founded?",
+    "kind": "year"
+   }
+  ],
+  "max_wrong": 2,
+  "swap_hint": null,
+  "explain_once": true,
+  "decline_after": 2
+ },
+ "calendar": {
+  "weekend": [
+   5,
+   6
+  ],
+  "holidays": [
+   "2026-11-11",
+   "2026-12-25",
+   "2026-12-31"
+  ]
+ },
+ "bands": [
+  {
+   "name": "Stage 1",
+   "min": 1,
+   "max": 14,
+   "deadline_kind": "calendar_days",
+   "deadline_n": 20,
+   "attempts": 1
+  },
+  {
+   "name": "Stage 2",
+   "min": 15,
+   "max": 90,
+   "deadline_kind": "business_days",
+   "deadline_n": 5,
+   "attempts": 2
+  }
+ ],
+ "products": {
+  "term_loan": {
+   "phrase": "term loan {reference}",
+   "floor_field": "instalment"
+  },
+  "revolving_credit": {
+   "phrase": "revolving credit line {reference}",
+   "floor_field": "min_repayment"
+  }
+ },
+ "first_ask": {
+  "date_rule": "today",
+  "amount_rule": "full"
+ },
+ "attempts": [
+  {
+   "n": 1,
+   "date_rule": "end_of_week",
+   "amount_rule": "full_or_floor",
+   "bands": null
+  },
+  {
+   "n": 2,
+   "date_rule": "deadline",
+   "amount_rule": "floor",
+   "bands": [
+    "Stage 2"
+   ]
+  }
+ ],
+ "amounts": {
+  "never_ask_how_much": true
+ },
+ "dates": {
+  "next_weekday": "following_week",
+  "this_weekday": "current_week",
+  "numeric_order": "DMY"
+ },
+ "callback": {
+  "days": [
+   "next_business_day"
+  ],
+  "start": "08:30",
+  "end": "16:00",
+  "after_now": true,
+  "max_asks": 2
+ },
+ "outcomes": {
+  "promise": [
+   "PROMISE_TO_PAY",
+   null
+  ],
+  "paid": [
+   "ALREADY_PAID",
+   null
+  ],
+  "transfer_restructuring": [
+   "TRANSFERRED",
+   "PLAN"
+  ],
+  "transfer_human": [
+   "TRANSFERRED",
+   "PERSON"
+  ],
+  "transfer_support": [
+   "TRANSFERRED",
+   "HARDSHIP"
+  ],
+  "refused": [
+   "NO_PROMISE",
+   "REFUSED"
+  ],
+  "hardship": [
+   "NO_PROMISE",
+   "HARDSHIP"
+  ],
+  "dispute": [
+   "NO_PROMISE",
+   "DISPUTE"
+  ],
+  "service_error": [
+   "NO_PROMISE",
+   "SYSTEM"
+  ],
+  "id_failed": [
+   "ID_FAILED",
+   "WRONG"
+  ],
+  "id_declined": [
+   "ID_FAILED",
+   "REFUSED"
+  ],
+  "callback": [
+   "NO_CONTACT",
+   "CALLBACK"
+  ],
+  "no_callback": [
+   "NO_CONTACT",
+   "NO_CALLBACK"
+  ],
+  "wrong_number": [
+   "NO_CONTACT",
+   "WRONG_NUMBER"
+  ],
+  "deceased": [
+   "NO_CONTACT",
+   "DECEASED"
+  ],
+  "unclear": [
+   "NO_CONTACT",
+   "UNCLEAR"
+  ]
+ },
+ "queues": {
+  "restructuring": "WORKOUT",
+  "human": "CREDIT_CONTROL",
+  "support": "SERVICE"
+ },
+ "notes": {
+  "enabled": true,
+  "reasons": {
+   "refused": "NP-REF",
+   "hardship": "NP-HARD",
+   "dispute": "NP-DISP",
+   "paid": "PAID",
+   "service_error": "NP-TECH"
+  },
+  "on_transfer": false
+ },
+ "multi": {
+  "enabled": true,
+  "ask_all_today": true,
+  "clamp_to_deadline": true
+ },
+ "interrupts": {
+  "hardship": "illness, a bereavement, the business closing down",
+  "dispute": "Disputes the debt",
+  "already_paid": "Already paid",
+  "restructuring": "Wants a new repayment plan",
+  "human": "Insists on a person after one offer of help",
+  "precedence": [
+   "hardship",
+   "restructuring",
+   "human",
+   "already_paid",
+   "dispute"
+  ],
+  "refuse_talk_times": 2
+ },
+ "currency_word": "dollars",
+ "forbidden_before_identity": [
+  "amounts",
+  "facility names",
+  "arrears",
+  "overdue"
+ ],
+ "call_variables": [
+  "customer_id",
+  "company_name",
+  "contact_name",
+  "now"
+ ],
+ "api": {
+  "verify_identity": {
+   "req": {
+    "customer_id": "customer_id",
+    "field": "check",
+    "answer": "given"
+   },
+   "resp": {
+    "ok": "ok",
+    "wrong_answers_left": "tries_left",
+    "all_verified": "complete",
+    "verified": "passed"
+   }
+  },
+  "get_account": {
+   "req": {
+    "customer_id": "customer_id"
+   },
+   "resp": {
+    "ok": "ok",
+    "products": "facilities"
+   },
+   "item": {
+    "past_due": "overdue_amount",
+    "days_late": "days_overdue",
+    "product_id": "facility_id",
+    "type": "product"
+   }
+  },
+  "create_promise": {
+   "req": {
+    "customer_id": "customer_id",
+    "amount": "amount",
+    "date": "pay_date",
+    "product_id": "facility_id"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "add_note": {
+   "req": {
+    "customer_id": "customer_id",
+    "product_id": "facility_id",
+    "reason": "note"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "close_call": {
+   "req": {
+    "customer_id": "customer_id",
+    "outcome": "result",
+    "reason": "detail"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "transfer_to_agent": {
+   "req": {
+    "customer_id": "customer_id",
+    "queue": "desk"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "schedule_callback": {
+   "req": {
+    "customer_id": "customer_id",
+    "date": "callback_at"
+   },
+   "resp": {
+    "ok": "ok"
+   },
+   "combined_datetime": true
+  }
+ },
+ "rules_text": []
+}

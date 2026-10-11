@@ -61,3 +61,20 @@ def test_first_request_listed_as_attempt_is_dropped():
 ])
 def test_line_checks(key, text, ok):
     assert (extract.line_problem(key, text) is None) == ok
+
+
+def test_raw2_recorded_answers_match_facts():
+    """Second raw-material shape: ticket + handling note + memo + code list, other call variables, renamed tool API."""
+    from builder.emit import workflow as W
+    from qa import selftest
+    ts = openapi.load(str(FX / "raw2-openapi.json"))
+    answers = json.loads((FX / "answers-raw2.json").read_text())
+    pol = extract.assemble(answers, [(FX / "raw2-brief.md").read_text()], ts, {})
+    assert schema.validate(pol, ts) == []
+    gold = json.loads((FX / "policy-raw2-facts.json").read_text())
+    assert policy_diff.diff(pol, gold) == []
+    for k, v in gold["required_lines"].items():
+        assert v in pol["lines"][k], (k, pol["lines"][k])
+    wf = W.build(pol, ts)
+    bad = [r for r in selftest.run_all(pol, ts, wf) if not r["ok"]]
+    assert not bad, bad
