@@ -171,48 +171,142 @@ def year_words(toks, i):
     return None
 
 
-def money_value(text):
-    """Amount in digits or words -> float, or None. Takes the LAST amount mentioned (corrections)."""
-    toks = tokens(text)
-    found = []
-    i = 0
+CUR_WORDS = ("dollars", "dollar", "euros", "euro", "pounds", "pound", "lira", "usd", "eur", "bucks")
+CENT_WORDS = ("cents", "cent", "pence", "penny")
+AMOUNT_WORDS = set(UNITS) | set(TENS) | set(CUR_WORDS) | set(CENT_WORDS) | {"hundred", "thousand", "and", "point", "a"}
+CORRECTION = re.compile(r"\b(sorry|i mean|actually|no wait|rather|correction|make it)\b")
+
+
+def amount_text(text):
+    """Normalised amount words: '637,50' (decimal comma before exactly two digits) reads as 637.50."""
+    return re.sub(r"(\d),(\d{2})(?!\d)", r"\1.\2", norm(text))
+
+
+def _num_groups(toks):
+    """Numbers in a token list, in order: dict(c=cents, i, j, dec=has cents, big=has hundreds)."""
+    out, i = [], 0
     while i < len(toks):
         t = toks[i]
-        m = re.match(r"^(\d+(?:\.\d+)?)$", t)
+        m = re.match(r"^(\d+)(?:\.(\d+))?$", t)
         if m:
-            v = float(m.group(1))
-            j = i + 1
-            if j < len(toks) and toks[j] in ("dollars", "dollar", "euros", "euro", "pounds", "lira", "usd", "eur") and j + 1 < len(toks) and toks[j + 1] == "and":
-                r = word_number(toks, j + 2) or (
-                    (float(toks[j + 2]), j + 3, False) if j + 2 < len(toks) and re.match(r"^\d+$", toks[j + 2]) else None)
-                if r and j + 3 <= len(toks) and r[1] < len(toks) + 1 and (r[1] < len(toks) and toks[r[1]] in ("cents", "cent")):
-                    v += float(r[0]) / 100.0
-                    j = r[1] + 1
-            found.append(v)
-            i = j
+            c = int(m.group(1)) * 100 + (int((m.group(2) + "0")[:2]) if m.group(2) else 0)
+            out.append({"c": c, "i": i, "j": i + 1, "dec": bool(m.group(2)), "big": int(m.group(1)) >= 100})
+            i += 1
             continue
         r = word_number(toks, i)
         if r and not r[2]:
-            v, j = float(r[0]), r[1]
-            if j < len(toks) and toks[j] == "point":
-                digits, k = "", j + 1
-                while k < len(toks) and toks[k] in UNITS and UNITS[toks[k]] < 10:
-                    digits += str(UNITS[toks[k]])
+            g = {"c": r[0] * 100, "i": i, "j": r[1], "dec": False, "big": r[0] >= 100}
+            if r[1] < len(toks) and toks[r[1]] == "point":  # 'six hundred point five'
+                digits, k = "", r[1] + 1
+                while k < len(toks) and (toks[k] in UNITS and UNITS[toks[k]] < 10 or re.match(r"^\d$", toks[k])):
+                    digits += toks[k] if toks[k].isdigit() else str(UNITS[toks[k]])
                     k += 1
                 if digits:
-                    v = float(str(int(v)) + "." + digits)
-                    j = k
-            if j < len(toks) and toks[j] in ("dollars", "dollar", "euros", "euro", "pounds") and j + 1 < len(toks) and toks[j + 1] == "and":
-                r2 = word_number(toks, j + 2)
-                if r2 and not r2[2] and r2[0] < 100 and (r2[1] >= len(toks) or toks[r2[1]] in ("cents", "cent", "pence")):
-                    # 'six hundred and thirty-seven dollars and fifty (cents)'
-                    v += r2[0] / 100.0
-                    j = r2[1] + (1 if r2[1] < len(toks) else 0)
-            found.append(v)
-            i = j
+                    g.update(c=r[0] * 100 + int((digits + "0")[:2]), j=k, dec=True)
+            out.append(g)
+            i = g["j"]
             continue
         i += 1
-    return found[-1] if found else None
+    return out
+
+
+def parse_amount(text):
+    """Spoken amount -> dict(status, c, alts). Integer cents, never floats.
+
+    status: ok (one clear reading), interp (one reading, said in an unusual way: the read-back shows it),
+    ambiguous (alts holds the readings, e.g. 'twelve fifty' = 1250.00 or 12.50), incomplete (ends in 'and' /
+    'point' / 'dollars and'), none. The LAST amount counts (corrections: '200, sorry, 250')."""
+    t = amount_text(text)
+    m = list(CORRECTION.finditer(t))
+    if m and re.search(r"\d|" + "|".join(list(UNITS) + list(TENS)), t[m[-1].end():]):
+        t = t[m[-1].end():]
+    toks = tokens(t)
+    if not toks:
+        return {"status": "none"}
+    gs = _num_groups(toks)
+    if not gs:
+        return {"status": "none"}
+    tail = toks[gs[-1]["j"]:]
+    if tail in (["and"], ["point"]) or tail[-2:] in ([w, "and"] for w in CUR_WORDS):
+        return {"status": "incomplete", "c": gs[-1]["c"]}
+    found, k = [], 0
+    while k < len(gs):
+        g = gs[k]
+        res = {"status": "ok", "c": g["c"]}
+        nx = gs[k + 1] if k + 1 < len(gs) else None
+        if nx and not g["dec"] and not nx["dec"] and g["c"] % 100 == 0 and nx["c"] < 10000:
+            between = toks[g["j"]:nx["i"]]
+            after = toks[nx["j"]] if nx["j"] < len(toks) else ""
+            cents_after = after in CENT_WORDS
+            if after in MONTHS or after == "of":
+                pass  # '100 dollars 30 October': a day, not cents
+            elif (len(between) in (1, 2) and between[0] in CUR_WORDS and between[1:] in ([], ["and"])) or \
+                    (between == ["and"] and cents_after) or (not between and cents_after):
+                res = {"status": "ok", "c": g["c"] + nx["c"] // 100}  # '637 dollars and 50 (cents)'
+                k += 1
+            elif not between and nx["c"] >= 1000 and k + 2 < len(gs) and gs[k + 2]["i"] == nx["j"] and \
+                    gs[k + 2]["c"] < 10000 and g["c"] < 1000 and not gs[k + 2]["dec"]:
+                # 'six thirty-seven fifty' -> 637.50
+                res = {"status": "interp", "c": g["c"] * 100 + nx["c"] + gs[k + 2]["c"] // 100}
+                k += 2
+            elif not between and nx["c"] >= 1000:
+                if g["big"]:  # 'six hundred thirty-seven fifty' -> 637.50
+                    res = {"status": "interp", "c": g["c"] + nx["c"] // 100}
+                else:  # 'twelve fifty' -> 1250.00 or 12.50
+                    res = {"status": "ambiguous", "c": g["c"] * 100 + nx["c"], "alts": [g["c"] * 100 + nx["c"], g["c"] + nx["c"] // 100]}
+                k += 1
+        found.append(res)
+        k += 1
+    out = found[-1]
+    if out["c"] <= 0 and out["status"] == "ok":
+        return {"status": "none"}  # 'zero' is not an offer
+    if re.search(r"(\d),(\d{2})(?!\d)", norm(text)) and out["status"] == "ok":
+        out["status"] = "interp"
+    return out
+
+
+def money_value(text):
+    """Amount in digits or words -> float, or None (the first reading of an ambiguous amount)."""
+    r = parse_amount(text)
+    if r["status"] in ("none", "incomplete"):
+        return None
+    return r["c"] / 100.0
+
+
+def cents(x):
+    return int(round(float(x) * 100))
+
+
+def amount_span(utt, phrase):
+    """The whole amount around the extracted words in the customer's message. The extractor may copy only part of
+    it ('six hundred and thirty-seven dollars' of '... dollars and fifty'), or a merged cut turn may hold the rest."""
+    ut, pt = tokens(amount_text(utt)), tokens(amount_text(phrase))
+    if not pt or not any(re.match(r"^\d", w) or w in UNITS or w in TENS for w in pt):
+        return phrase
+    pos = None
+    for i in range(len(ut) - len(pt), -1, -1):
+        if ut[i:i + len(pt)] == pt:
+            pos = i
+            break
+    if pos is None:
+        return phrase
+
+    def amountish(w):
+        return w in AMOUNT_WORDS or bool(re.match(r"^\d+(\.\d+)?$", w))
+    i, j = pos, pos + len(pt)
+    while j < len(ut) and amountish(ut[j]) and ut[j] != "a":
+        j += 1
+    while i > 0 and amountish(ut[i - 1]) and (ut[i - 1] != "a" or ut[i] in ("hundred", "thousand")):
+        i -= 1
+    while i < j and (ut[i] == "and" or ut[i] == "a" and (i + 1 >= j or ut[i + 1] not in ("hundred", "thousand"))):
+        i += 1
+    return " ".join(ut[i:j])
+
+
+AMOUNT_REFS = (("floor", re.compile(r"\b(minimum|lowest|least|smallest|floor|instalment|installment)\b")),
+               ("full", re.compile(r"\b(full|whole|entire|total|everything|all of it|the lot|past due|overdue|all)\b")),
+               ("that", re.compile(r"^(that|it|this|that amount|this amount|the same|same amount|same|that much|"
+                                   r"this much|what you said|the amount you said)$")))
 
 
 def digit_string(text):
@@ -546,7 +640,8 @@ def parse_dob(text, order="DMY"):
         w = toks[i]
         if w in MONTHS and (w != "may" or _numberish(toks[i - 1] if i else "") or
                             _numberish(toks[i + 1] if i + 1 < len(toks) else "") or
-                            (i + 1 < len(toks) and toks[i + 1] in ("the",))):
+                            (i + 1 < len(toks) and toks[i + 1] in ("the",)) or (i > 0 and toks[i - 1] in ("of", "in")) or
+                            not [x for x in toks if x not in BARE_FILLER and x != "may"]):
             out["m"] = MONTHS[w]
             i += 1
             continue
@@ -859,16 +954,161 @@ EVENT_WORDS = re.compile(r"\b(wedding|birthday|party|anniversary|funeral|holiday
 PAY_WORDS = re.compile(r"\b(pay|paying|payment|transfer|send|settle|cover|clear)\b")
 
 
+CLAUSES = re.compile(r"[.;!?,]|\bbut\b|\band\b|\bhowever\b|\bthough\b")
+
+
 def not_about_paying(utt, phrase):
-    """True when the date phrase sits in a clause about another event ('my cousin's wedding is on the 30th')."""
+    """True when the date phrase sits in a clause about another event ('my cousin's wedding is on the 30th'),
+    also when that clause shares a sentence with paying ('I can't pay today, my cousin's wedding is on the 30th')."""
     u = norm(utt)
     ph = norm(phrase)
     if not ph or ph not in u:
         return False
-    for clause in re.split(r"[.;!?]|\bbut\b|\band\b", u):
+    for clause in CLAUSES.split(u):
         if ph in clause:
             return bool(EVENT_WORDS.search(clause)) and not PAY_WORDS.search(clause)
     return False
+
+
+NEG_WORDS = re.compile(r"\b(not|no|never|cannot|can't|cant|won't|wont|unable|don't|dont|isn't|impossible|no way)\b|n't\b")
+NEG_AFTER = re.compile(r"^\s*(is not|isn't|won't|wont|doesn't|does not|is impossible|is too soon|is not possible|"
+                       r"won't work|doesn't work|no)\b")
+INCOME = re.compile(r"\b(salary|paycheck|pay check|wages|payday|pay day|get paid|income|pension|benefits)\b")
+ANAPHORA = re.compile(r"\b(then|that day|that date|on that day|by then|at that point)\b")
+PAY_CUE = re.compile(r"\b(pay|paying|payment|transfer|send|settle|afford|manage)\b")
+PAY_INTENT = re.compile(r"\b(i|we)('ll|'d| will| would| can| could| shall| am able to| are able to| want to| wanna|"
+                        r" plan to| intend to| am going to|'m going to| would like to|'d like to| might)\s+(\w+\s+)?"
+                        r"(pay|transfer|send|settle|manage|do it|do that|make it|make the payment)\b|"
+                        r"\bcan (i|we) pay\b|\b(pay|paying)\b[^.;]{0,40}\b(then|that day)\b")
+SUPERSEDED = re.compile(r"\b(instead of|rather than)\s+(on\s+)?(the\s+)?[a-z0-9]+(\s+of\s+[a-z]+)?")
+
+
+def negated_in(utt, phrase):
+    """True when the customer's message negates this phrase: 'I cannot pay today', 'not today', 'today won't work'.
+    'I can't pay until Friday' names Friday (until / till / before turn the negation into a limit)."""
+    u, ph = norm(utt).replace("’", "'"), norm(phrase)
+    if not ph or ph not in u:
+        return False
+    if re.match(r"^(until|till|before|after|from)\b", ph):
+        return False
+    k = u.rfind(ph)
+    start = max(u.rfind(x, 0, k) for x in (",", ".", ";", "!", "?", " but ", " however "))
+    before = u[start + 1:k]
+    if re.search(r"\b(until|till|before|from|after)\s*$", before):
+        return False
+    return bool(NEG_WORDS.search(before)) or bool(NEG_AFTER.match(u[k + len(ph):]))
+
+
+def month_hint(st):
+    h = st.get("month_hint")
+    if isinstance(h, dict) and st.get("turn", 0) - h.get("turn", 0) <= 3:
+        return h.get("m")
+    return None
+
+
+def utterance_date(utt, today, cal, cfg, hint):
+    """A payment day stated in the message when the extracted words are missing, negated or only point back
+    ('then'): a clause that pays, or names an income day that a paying clause points back to. Clauses about another
+    event and negated clauses never count."""
+    u = SUPERSEDED.sub(" ", norm(utt).replace("’", "'"))
+    linked = bool(ANAPHORA.search(u) and PAY_CUE.search(u))
+    best = None
+    for c in CLAUSES.split(u):
+        c = c.strip()
+        if not c or (EVENT_WORDS.search(c) and not PAY_CUE.search(c)):
+            continue
+        if NEG_DAY.search(c) or (NEG_WORDS.search(c) and not re.search(r"\b(until|till|before)\b", c)):
+            continue
+        if not (PAY_INTENT.search(c) or (linked and INCOME.search(c))):
+            continue  # only a clause that says the customer will pay ('too much for me to pay right now' is not one)
+        r = parse_pay_date(c, today, cal, cfg, hint)
+        if r.get("status") in ("ok", "past", "conflict"):
+            best = r
+    return best
+
+
+def read_date(st, inp, P, today):
+    """The payment day of this turn, read in context: the extracted words unless the message negates them, else a
+    payment day the message itself links to paying; 'instead of <day>' drops the superseded day."""
+    utt, ph = inp.get("utterance") or "", inp.get("pay_date") or ""
+    cal, cfg, hint = P["calendar"], P.get("dates") or {}, month_hint(st)
+    dres = {"status": "none"}
+    if ph and not (utt and negated_in(utt, ph)):
+        clean = SUPERSEDED.sub(" ", norm(ph))
+        dres = parse_pay_date(clean if clean.strip() else ph, today, cal, cfg, hint)
+    if dres.get("status") == "none" and utt:
+        dres = utterance_date(utt, today, cal, cfg, hint) or dres
+    if dres.get("month"):
+        st["month_hint"] = {"m": dres["month"], "turn": st.get("turn", 0)}  # 'on October' ... 'Thirty.'
+    elif dres.get("status") == "ok":
+        st["month_hint"] = None
+    return dres
+
+
+def read_amount(st, inp):
+    """What the customer said about the amount, before a product is chosen: parse_amount() of the whole amount in the
+    message, or a reference (ref: floor | full | that). A negated amount ('I can't pay the minimum') is none."""
+    ph, utt = inp.get("pay_amount") or "", inp.get("utterance") or ""
+    if not ph:
+        return {"status": "none"}
+    if utt and negated_in(utt, ph):
+        return {"status": "none", "negated": True}
+    span = amount_span(utt, ph) if utt else ph
+    r = parse_amount(span)
+    if r["status"] == "none":
+        n = norm(span)
+        for ref, rx in AMOUNT_REFS:
+            if rx.search(n):
+                return {"status": "ref", "ref": ref}
+    return r
+
+
+def amount_for(st, p, ar):
+    """Resolve the amount for product p against the account facts. Returns dict(status=none|ok|ambiguous, c, best).
+    A reading that equals a known amount wins; one reading inside floor..past due wins (the read-back shows it);
+    a whole-dollar amount just under a known amount with cents ('six hundred thirty-seven' for 637.50) is checked
+    with the customer, never rejected as below the floor."""
+    s = ar.get("status")
+    if s in ("none", None):
+        return {"status": "none", "best": None}
+    floor, full = cents(p["floor"]), cents(p["past_due"])
+    known = [floor, full]
+    if (p.get("offer") or {}).get("amount") is not None:
+        known.append(cents(p["offer"]["amount"]))
+    said = st.get("said") or {}
+    if said.get("amt") is not None:
+        known.append(cents(said["amt"]))
+    if s == "ref":
+        ref = ar["ref"]
+        if ref == "floor":
+            return {"status": "ok", "c": floor}
+        if ref == "full":
+            return {"status": "ok", "c": full}
+        if said.get("amt") is not None and st.get("turn", 0) - said.get("turn", 0) <= 1 and \
+                (not said.get("pid") or said["pid"] == p["id"]):
+            return {"status": "ok", "c": cents(said["amt"])}
+        if (p.get("offer") or {}).get("amount") is not None:
+            return {"status": "ok", "c": cents(p["offer"]["amount"])}
+        return {"status": "none", "best": None}
+    def near(c):  # a known amount with cents whose dollars were said: the cents may be missing
+        ks = [k for k in known if k % 100 and k // 100 == c // 100 and k > c and k >= floor]
+        return ks[0] if ks and c % 100 == 0 else None
+    if s == "incomplete":  # '... dollars and' with nothing after it
+        return {"status": "ambiguous", "best": near(ar["c"]) or ar["c"]}
+    alts = ar.get("alts") or [ar["c"]]
+    hit = [a for a in alts if a in known]
+    if len(set(hit)) == 1:
+        return {"status": "ok", "c": hit[0]}
+    inr = [a for a in alts if floor <= a <= full]
+    if s == "ambiguous":
+        if len(inr) == 1:
+            return {"status": "ok", "c": inr[0]}
+        best = min(alts, key=lambda a: min(abs(a - k) for k in known))
+        return {"status": "ambiguous", "best": near(best) or best}
+    c = ar["c"]
+    if c < floor and near(c):
+        return {"status": "ambiguous", "best": near(c)}
+    return {"status": "ok", "c": c}
 
 
 def read_inputs(V):
@@ -910,7 +1150,10 @@ class Out(object):
         self.extra = {}
 
 
-RUNTIME_LINES = {"go_on": "Please go on.", "floor_info": "The lowest amount I can record for your {product} is {amount}."}
+RUNTIME_LINES = {"go_on": "Please go on.", "floor_info": "The lowest amount I can record for your {product} is {amount}.",
+                 "amount_check": "Just to be sure, did you mean {amount}?",
+                 "ask_change": "What would you like to change, the amount or the date?",
+                 "wait_ok": "Of course, take your time."}
 
 
 def L(P, key, mp=None, **kw):
@@ -1136,21 +1379,35 @@ def fallback_situation(st):
     return "service_error"
 
 
+def limit_exit(st, V, P):
+    """The turn cap or a loop of identical lines ends the call (L2). It is not the customer's refusal: before the
+    account the call closes as unclear, after it every product without a promise is a service problem."""
+    out = Out()
+    st.setdefault("events", []).append("limit_exit")
+    if st.get("phase") in ("person", "third_party", "identity", "verified_wait") or not st.get("products"):
+        end_call(st, out, V, P, fallback_situation(st), [])
+        return out
+    for p in st["products"]:
+        if p["status"] in ("open", "agreed"):
+            p["status"] = "failed"
+    close_without_promise(st, out, V, P, person_map(V, P), today_of(V, P))
+    return out
+
+
 def finish(st, out, V, P):
     text = " ".join(x for x in out.say if x).strip()
+    looping = out.route in ("say", "confirm") and text and text == st.get("last_say") and st.get("repeats", 0) >= 2
+    if st.get("phase") != "ended" and (st.get("turn", 0) >= MAX_TURNS or looping):
+        out, text = limit_exit(st, V, P), ""
     if out.route == "say" or out.route == "confirm":
         if text and text == st.get("last_say"):
             st["repeats"] = st.get("repeats", 0) + 1
         else:
             st["repeats"] = 0
         st["last_say"] = text
-        if st["repeats"] >= 2 and st.get("phase") != "ended":
-            pre = [P["lines"]["repeat"]] if st["repeats"] == 2 else []
-            if st["repeats"] >= 3:
-                end_call(st, out, V, P, st.get("outcome") or "unclear", [])
-            else:
-                text = " ".join(pre + [text])
-        if not text and out.route in ("say", "confirm"):
+        if st["repeats"] >= 2:
+            text = " ".join([P["lines"]["repeat"], text])
+        if not text:
             text = P["lines"]["repeat"]
     if out.route not in ("say", "confirm") and text:
         # lines decided this turn must still be heard when the turn ends in a tool chain or an ending
@@ -1167,9 +1424,6 @@ def finish(st, out, V, P):
     V["route"] = out.route
     for k, v in out.extra.items():
         V[k] = v
-    if st.get("turn", 0) >= MAX_TURNS and st.get("phase") != "ended":
-        end_call(st, out, V, P, st.get("outcome") or "unclear", [])
-        V["route"] = out.route
     if out.route in ("say", "confirm") and st.get("phase") != "ended":
         set_outcome(V, P, fallback_situation(st))  # only used if a later decide step fails (end_tech)
     elif not V.get("final_outcome") or not V.get("final_route"):
@@ -1294,8 +1548,7 @@ def step_third_party(st, inp, V, P, out, pm, today):
         out.say.append(answer_question(topic, P, pm, False))
         out.say.append(L(P, "third_party_ask", pm))
         return
-    st["clarify"] = st.get("clarify", 0) + 1
-    if st["clarify"] > 2:
+    if bump(st, "tp") > 2:
         return end_call(st, out, V, P, "no_callback", [])
     out.say.append(L(P, "third_party_ask", pm))
 
@@ -1457,11 +1710,11 @@ def step_identity(st, inp, V, P, out, pm):
         ids["more"] = 0
         out.say.append(q["ask"])
         return
-    st["clarify"] = st.get("clarify", 0) + 1
-    if st["clarify"] > 4:
+    n = bump(st, "id%d" % ids["q"])
+    if n > 4:
         return end_call(st, out, V, P, "id_declined", [])
     # never the same words three times in a row: alternate the question with a 'didn't catch that' variant
-    out.say.append(q["ask"] if st["clarify"] % 2 else L(P, "id_unreadable", pm, label=q.get("label", "")))
+    out.say.append(q["ask"] if n % 2 else L(P, "id_unreadable", pm, label=q.get("label", "")))
 
 
 def precompute_verify(st, out, V, P, pm, q):
@@ -1685,18 +1938,21 @@ def scope_products(st, inp, P):
     prods = st["products"]
     if re.search(r"\b(all|both|everything|all of them|every one|each of them|the three|all three|the two)\b", t):
         return [p for p in prods if p["status"] in ("open", "agreed")]
-    hits = []
+    hits, matched = [], {}
     for p in prods:
         words = [w for w in norm(p["phrase"]).split() if len(w) > 2 and w not in ("ending", "your", "the")]
         typ_words = [w for w in norm(p["type"].replace("_", " ")).split() if len(w) > 2]
-        if any(re.search(r"\b" + re.escape(w) + r"s?\b", t) for w in set(words + typ_words)):
+        m = set(w for w in set(words + typ_words) if re.search(r"\b" + re.escape(w) + r"s?\b", t))
+        if m:
             hits.append(p)
+            matched[p["id"]] = m
     if len(hits) > 1:
-        # 'loan' matches several loans: keep the ones whose distinctive word matched
-        strict = [p for p in hits if any(re.search(r"\b" + re.escape(w) + r"\b", t)
-                                         for w in norm(p["type"].replace("_", " ")).split() if w not in ("loan", "card"))]
-        if strict:
-            hits = strict
+        # 'loan' matches several loans: a product named only by a shared word ('loan') yields to one named by its own
+        # word too ('car loan'); 'the card and the car loan' keeps the card (no other product says 'card')
+        shared = set(w for p in hits for w in matched[p["id"]] if sum(1 for q in hits if w in matched[q["id"]]) > 1)
+        named = [p for p in hits if matched[p["id"]] - shared]
+        hits = [p for p in hits if matched[p["id"]] - shared or
+                not any(set(matched[p["id"]]) & matched[q["id"]] for q in named if q is not p)]
     return hits
 
 
@@ -1743,8 +1999,15 @@ def refused_before(p, offer):
 def next_attempt(st, out, V, P, pm, today, p):
     """The customer refused (or did not answer). Use the next persuasion attempt or settle as refused."""
     multi = len(st["products"]) > 1
-    if p.get("offer"):
+    if p.get("offer") and p["offer"].get("date"):
         p["refused"].append({"amount": p["offer"]["amount"], "date": p["offer"]["date"]})
+    if st.get("hardship"):
+        # A32: after illness, a death or job loss no persuasion attempt; support is offered once
+        p["offer"] = None
+        if not st.get("support_offered"):
+            return offer_support(st, out, P, pm)
+        p["status"] = "hardship"
+        return next_product_or_close(st, out, V, P, pm, today)
     while True:
         n = p["attempts_used"] + 1
         off = attempt_offer(p, P, today, n)
@@ -1754,7 +2017,7 @@ def next_attempt(st, out, V, P, pm, today, p):
             return next_product_or_close(st, out, V, P, pm, today)
         p["attempts_used"] = n
         if refused_before(p, off):
-            continue
+            continue  # A31: an offer the customer already refused is not repeated
         p["offer"] = off
         out.say.append(offer_text(P, pm, p, off["amount"], off["date"], today, multi, True))
         if off["amount"] < p["past_due"] - 0.005 and off["amount"] <= p["floor"] + 0.005 and not p.get("rest_said"):
@@ -1771,8 +2034,7 @@ def next_product_or_close(st, out, V, P, pm, today):
         if p.get("offer") is None or p["offer"].get("kind") == "today":
             p["offer"] = None
             return next_attempt(st, out, V, P, pm, today, p)
-        out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, True, True))
-        return
+        return ask_pending(st, out, P, pm, today, p)
     return readback_or_close(st, out, V, P, pm, today)
 
 
@@ -1787,6 +2049,7 @@ def readback_or_close(st, out, V, P, pm, today):
                            date=spoken_date(d_from(a["date"]), today)))
         st["snapshot"] = [{"pid": p["id"], "amount": p["agreed"]["amount"], "date": p["agreed"]["date"]} for p in agreed]
         st["phase"] = "confirm"
+        st.setdefault("cl", {}).pop("confirm", None)
         out.say.append(L(P, "readback", pm, items=join_and(items)))
         out.say.append(L(P, "confirm_question", pm))
         out.route = "say"
@@ -1807,6 +2070,10 @@ def situation_for_status(status):
 
 def close_without_promise(st, out, V, P, pm, today, pre=None):
     prods = st["products"]
+    for p in prods:
+        if p["status"] in ("agreed", "open"):
+            p["status"] = "hardship" if st.get("hardship") else "refused"
+            p["agreed"] = None
     notes_on = (P.get("notes") or {}).get("enabled")
     if len(prods) <= 1 or not notes_on:
         p = prods[0] if prods else {"status": "refused"}
@@ -1847,24 +2114,52 @@ def accept(p, amount, date, clamped=False):
     p["offer"] = None
 
 
+def cw(P):
+    return P.get("currency_word", "dollars")
+
+
+def bump(st, key):
+    """Bounded no-progress counters, one per question (identity question, product, read-back): a non-answer in one
+    phase never uses up another phase's patience."""
+    cl = st.setdefault("cl", {})
+    cl[key] = cl.get(key, 0) + 1
+    return cl[key]
+
+
+def date_alternative(p, dres, P, today):
+    """The day the calendar rules make of a parsed day for product p, without speaking: the day itself, the next
+    business day, or the deadline. None when there is no usable day."""
+    if dres.get("status") != "ok":
+        return None
+    d, dl = d_from(dres["date"]), d_from(p["deadline"])
+    if d is None or d < today:
+        return None
+    if d > dl:
+        return d_iso(dl)
+    if not is_business(d, P["calendar"]):
+        return d_iso(min(next_business_on_or_after(d, P["calendar"]), dl))
+    return d_iso(d)
+
+
 def validate_date(p, dres, P, pm, today, out, multi, allow_clamp):
     """Apply the calendar rules to a parsed date for product p. Returns (date_iso, clamped) or (None, None) after
-    speaking the counter-question."""
+    speaking the counter-question. An alternative day offered here remembers the day it replaces."""
     dl = d_from(p["deadline"])
     st_ = dres.get("status")
+    amt = (p.get("offer") or {}).get("amount", p["past_due"])
     if st_ == "ok":
         d = d_from(dres["date"])
         if d > dl:
             if allow_clamp:
                 return d_iso(dl), True
-            p["offer"] = {"amount": (p["offer"] or {}).get("amount", p["past_due"]), "date": d_iso(dl), "kind": "deadline"}
+            p["offer"] = {"amount": amt, "date": d_iso(dl), "kind": "deadline", "replaces": dres["date"]}
             out.say.append(L(P, "deadline_offer", pm, date=spoken_date(dl, today)))
             return None, None
         if not is_business(d, P["calendar"]):
             nb = next_business_on_or_after(d, P["calendar"])
             if nb > dl:
                 nb = dl
-            p["offer"] = {"amount": (p["offer"] or {}).get("amount", p["past_due"]), "date": d_iso(nb), "kind": "next_business"}
+            p["offer"] = {"amount": amt, "date": d_iso(nb), "kind": "next_business", "replaces": dres["date"]}
             out.say.append(L(P, "next_business_day_offer", pm, asked=spoken_date(d, today), date=spoken_date(nb, today)))
             return None, None
         return d_iso(d), False
@@ -1873,7 +2168,7 @@ def validate_date(p, dres, P, pm, today, out, multi, allow_clamp):
         return None, None
     if st_ == "conflict":
         d = d_from(dres["date"])
-        p["offer"] = {"amount": (p["offer"] or {}).get("amount", p["past_due"]), "date": d_iso(d), "kind": "confirm_date"}
+        p["offer"] = {"amount": amt, "date": d_iso(d), "kind": "confirm_date"}
         out.say.append(L(P, "date_conflict", pm, date=spoken_date(d, today)))
         return None, None
     if st_ == "vague":
@@ -1881,32 +2176,79 @@ def validate_date(p, dres, P, pm, today, out, multi, allow_clamp):
             p["exact_asked"] = True
             out.say.append(L(P, "ask_exact_day", pm))
             return None, None
-        p["offer"] = {"amount": (p["offer"] or {}).get("amount", p["past_due"]), "date": d_iso(dl), "kind": "deadline"}
+        p["offer"] = {"amount": amt, "date": d_iso(dl), "kind": "deadline"}
         out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, multi, multi))
         return None, None
     out.say.append(L(P, "ask_exact_day", pm))
     return None, None
 
 
-def validate_amount(p, amount, P, pm, today, out):
-    """Returns accepted amount or None (after speaking)."""
-    if amount is None:
-        return None
-    if amount > p["past_due"] + 0.005:
+def validate_amount(p, c, P, pm, today, out, date=None):
+    """c: the customer's amount in cents, already unambiguous. Returns the accepted amount, None after offering the
+    floor (A27, once; on the customer's own day when they gave one), or -1 when the floor was already offered."""
+    if c > cents(p["past_due"]):
         return p["past_due"]
-    if amount + 0.005 < p["floor"]:
+    if c < cents(p["floor"]):
         if not p.get("below_floor_offered"):
             p["below_floor_offered"] = True
             p["floor_offered"] = True
-            line = L(P, "below_floor", pm, floor=money(p["floor"], P.get("currency_word", "dollars")))
+            line = L(P, "below_floor", pm, floor=money(p["floor"], cw(P)))
             out.say.append(line)
-            date = (p.get("offer") or {}).get("date") or d_iso(today)
             p["offer"] = {"amount": p["floor"], "date": date, "kind": "floor"}
             if not line.rstrip().endswith("?"):
-                out.say.append(offer_text(P, pm, p, p["floor"], date, today, False, False))
+                if date:
+                    out.say.append(offer_text(P, pm, p, p["floor"], date, today, False, False))
+                else:
+                    out.say.append(L(P, "floor_offer", pm, amount=money(p["floor"], cw(P))))
+                    out.say.append(L(P, "ask_exact_day", pm))
             return None
         return -1
-    return round(amount, 2)
+    return c / 100.0
+
+
+INFO_TOPICS = ("robot", "scam", "other_question", "discount", "how_much", "why_needed", "what_about", "change_promise")
+MIN_Q = re.compile(r"\b(minimum|lowest|least|smallest)\b")
+OWE_Q = re.compile(r"\b(how much|owe|past due|balance|the amount)\b")
+REPEAT_Q = re.compile(r"\b(repeat|say that again|come again|pardon|what did you say|didn't (catch|hear)|one more time|"
+                      r"say again)\b")
+HOLD = re.compile(r"^\s*(hold on|one (moment|second|sec|minute)|just a (moment|second|sec|minute)|"
+                  r"give me a (moment|second|sec|minute)|let me (check|think|see|look)|wait a)\b")
+HESITATE = re.compile(r"\b(don't know|dont know|not sure|no idea|maybe|i guess|we'll see|hard to say|depends|perhaps)\b")
+
+
+def own_offer(inp):
+    """The customer named a day or an amount of their own this turn ('I cannot pay anything' is not one)."""
+    return inp["ar"].get("status") not in ("none", None) or inp["dres"].get("status") in ("ok", "past", "conflict")
+
+
+def answer_info(st, inp, out, P, pm, today):
+    """Answer an information question from the account facts. Counters and offers stay as they are."""
+    topic, u = inp["topic"], norm(inp["utterance"])
+    if topic == "change_promise":
+        out.say.append(L(P, "change_in_app", pm))
+        return
+    if topic == "how_much" or (topic in ("other_question", "discount") and (MIN_Q.search(u) or OWE_Q.search(u))
+                               and "?" in inp["utterance"]):
+        prods = st["products"]
+        targets = [p for p in scope_products(st, inp, P) if p in prods] or [cur_product(st) or prods[0]]
+        for p in targets:
+            if MIN_Q.search(u) and p.get("floor") is not None:
+                out.say.append(L(P, "floor_info", pm, product=p["phrase"], amount=money(p["floor"], cw(P))))
+                st["said"] = {"amt": p["floor"], "pid": p["id"], "turn": st.get("turn", 0)}
+            else:
+                out.say.append(L(P, "disclosure_item", pm, **product_view(p, P, today)))
+                st["said"] = {"amt": p["past_due"], "pid": p["id"], "turn": st.get("turn", 0)}
+        return
+    if REPEAT_Q.search(u):
+        return  # the pending question follows, said again
+    out.say.append(answer_question(topic, P, pm, True))
+
+
+def offer_support(st, out, P, pm):
+    st["phase"] = "support_offer"
+    st["outcome"] = "hardship"
+    st["support_offered"] = True
+    out.say.append(L(P, "support_offer", pm))
 
 
 def step_negotiate(st, inp, V, P, out, pm, today):
@@ -1914,34 +2256,39 @@ def step_negotiate(st, inp, V, P, out, pm, today):
     prods = st["products"]
     multi = len(prods) > 1
     ph = st["phase"]
+    asked_before = st.pop("asked", None)  # what the agent's previous turn ended with (info answer, hold)
     if ph == "after_fail":
         absorb_writes(st, V)
         return finish_after_fail(st, out, V, P, pm, today)
+    inp["dres"] = read_date(st, inp, P, today)
+    inp["ar"] = read_amount(st, inp)
     # interrupts first (L8), by the brief's precedence
     prec = (P.get("interrupts") or {}).get("precedence") or ["hardship", "dispute", "already_paid", "restructuring", "human"]
     if topic in prec and not (ph == "support_offer" and topic == "hardship") and not (ph == "human_offer" and topic == "human"):
-        r = handle_interrupt(st, inp, V, P, out, pm, today, topic)
-        if out.route != "say" or out.say:
-            return
+        if topic == "hardship" and own_offer(inp) and ph in ("negotiate", "confirm"):
+            # A32: one sentence of sympathy and no persuasion; a day or an amount the customer names is still handled
+            st["hardship"] = True
+            out.say.append(L(P, "sympathy", pm))
+            st["phase"] = ph = "negotiate"
+        else:
+            handle_interrupt(st, inp, V, P, out, pm, today, topic)
+            if out.route != "say" or out.say:
+                return
     if ph == "support_offer":
-        # only a real day or amount counts as the customer's own offer ('I cannot pay anything' is not one)
-        amt = money_value(inp["pay_amount"]) if inp["pay_amount"] else None
-        dst = parse_pay_date(inp["pay_date"], today, P["calendar"], P.get("dates") or {})["status"] if inp["pay_date"] else "none"
-        has_offer = (amt is not None and amt > 0) or dst in ("ok", "past", "conflict")
-        if has_offer:
-            st["phase"] = "negotiate"
+        if own_offer(inp):
+            st["phase"] = ph = "negotiate"
         elif reply == "yes" or intent == "accept_transfer":
             return do_transfer(st, out, V, P, pm, "support")
-        elif reply == "no" or intent in ("refuse_talk", "goodbye", "decline"):
+        elif reply == "no" or intent in ("refuse_talk", "goodbye", "decline", "refuse_pay"):
             for p in prods:
                 if p["status"] == "open":
                     p["status"] = "hardship"
-            if multi and any(p["status"] == "agreed" for p in prods):
+            if any(p["status"] == "agreed" for p in prods):
                 return readback_or_close(st, out, V, P, pm, today)
             return close_without_promise(st, out, V, P, pm, today)
         else:
-            if topic in ("robot", "scam", "other_question", "discount", "how_much"):
-                out.say.append(answer_question(topic, P, pm, True))
+            if topic in INFO_TOPICS:
+                answer_info(st, inp, out, P, pm, today)
             out.say.append(L(P, "support_offer", pm))
             return
     if ph == "human_offer":
@@ -1953,199 +2300,247 @@ def step_negotiate(st, inp, V, P, out, pm, today):
         st["phase"] = st.get("resume_phase") if st.get("resume_phase") in ("negotiate", "confirm") else "negotiate"
         st["human_pending"] = False
         ph = st["phase"]
-    if topic in ("robot", "scam", "other_question", "discount", "how_much", "why_needed", "what_about", "change_promise"):
-        if topic == "how_much":
-            p = cur_product(st) or prods[0]
-            if re.search(r"\b(minimum|lowest|least|smallest|at least)\b", norm(inp["utterance"])) and p.get("floor"):
-                out.say.append(L(P, "floor_info", pm, product=p["phrase"],
-                                 amount=money(p["floor"], P.get("currency_word", "dollars"))))
-            else:
-                out.say.append(L(P, "disclosure_item", pm, **product_view(p, P, today)))
-        elif topic == "change_promise":
-            out.say.append(L(P, "change_in_app", pm))
-        else:
-            out.say.append(answer_question(topic, P, pm, True))
-        if not (inp["pay_date"] or inp["pay_amount"] or reply in ("yes", "no") or intent in ("propose", "too_much", "vague_time")):
+    if topic in INFO_TOPICS:
+        answer_info(st, inp, out, P, pm, today)
+        if not (own_offer(inp) or reply in ("yes", "no") or intent in ("propose", "too_much", "vague_time", "refuse_pay")):
+            st["asked"] = "info"
             return repeat_pending(st, out, V, P, pm, today)
-    if intent in ("refuse_talk", "goodbye") and not (inp["pay_date"] or inp["pay_amount"]) and reply != "yes":
+    if intent in ("refuse_talk", "goodbye") and not own_offer(inp) and reply != "yes":
         st["refusals"] = st.get("refusals", 0) + 1
         if st["refusals"] >= int((P.get("interrupts") or {}).get("refuse_talk_times", 2) or 2) or intent == "goodbye":
             for p in prods:
                 if p["status"] == "open":
-                    p["status"] = "refused"
+                    p["status"] = "hardship" if st.get("hardship") else "refused"
             if any(p["status"] == "agreed" for p in prods) and ph != "confirm":
                 return readback_or_close(st, out, V, P, pm, today)
             return close_without_promise(st, out, V, P, pm, today)
     if ph == "confirm":
         return step_confirm(st, inp, V, P, out, pm, today)
-    return step_offer(st, inp, V, P, out, pm, today)
+    return step_offer(st, inp, V, P, out, pm, today, asked_before)
 
 
 def repeat_pending(st, out, V, P, pm, today):
+    """Say the pending question again (a clarification or a requested repetition: no counter moves)."""
     if st["phase"] == "confirm":
         return readback_or_close(st, out, V, P, pm, today)
+    if st.get("multi_stage") == "all_date" and st.get("group_q"):
+        out.say.append(st["group_q"])
+        return
     p = cur_product(st)
     if not p:
         return readback_or_close(st, out, V, P, pm, today)
-    multi = len(st["products"]) > 1
-    if st.get("multi_stage") == "all_today" or (p.get("offer") and p["offer"].get("kind") == "today"):
+    off = p.get("offer")
+    if st.get("multi_stage") == "all_today" or (off and off.get("kind") == "today"):
         out.say.append(first_ask_text(st, P, pm, today))
-    elif p.get("offer"):
-        out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, multi, multi))
+    elif off:
+        ask_pending(st, out, P, pm, today, p)
     else:
         p["offer"] = first_offer(p, P, today)
         out.say.append(first_ask_text(st, P, pm, today))
 
 
-def step_offer(st, inp, V, P, out, pm, today):
+def step_offer(st, inp, V, P, out, pm, today, asked_before=None):
     topic, reply, intent = inp["topic"], inp["reply"], inp["intent"]
     prods = st["products"]
     multi = len(prods) > 1
     stage = st.get("multi_stage")
-    amount = money_value(inp["pay_amount"]) if inp["pay_amount"] else None
-    dres = parse_pay_date(inp["pay_date"], today, P["calendar"], P.get("dates") or {}, st.get("month_hint")) \
-        if inp["pay_date"] else {"status": "none"}
-    if dres.get("month"):
-        st["month_hint"] = dres["month"]  # 'on October' -> the next bare day number is in October
-    elif dres.get("status") == "ok":
-        st["month_hint"] = None
-    proposes = amount is not None or dres.get("status") not in ("none",) or intent in ("propose", "vague_time")
+    ar, dres = inp["ar"], inp["dres"]
     if intent == "vague_time" and dres.get("status") == "none":
         dres = {"status": "vague"}
+    proposes = ar.get("status") not in ("none", None) or dres.get("status") != "none" or intent in ("propose", "vague_time")
     if multi and stage == "all_date":
-        # the exact day was asked for every product at once: a day without a narrower scope still covers all
+        # the exact day was asked for a group of products at once: a day without a narrower scope covers that group
         st["multi_stage"] = None
+        scope = [p for p in prods if p["id"] in (st.get("scope") or []) and p["status"] == "open"] or open_products(st)
+        if reply == "yes" and dres.get("status") == "none" and st.get("scope_date"):
+            dres, proposes = {"status": "ok", "date": st["scope_date"]}, True
+        if ar.get("status") in ("none", None) and st.get("scope_ar"):
+            ar = st["scope_ar"]
+        st["scope_date"], st["group_q"], st["scope_ar"] = None, None, None
         targets, refused_now = scope_split(st, inp, P)
-        if proposes and not refused_now and (not targets or len(targets) == len([p for p in prods if p["status"] == "open"])):
-            return apply_to_all(st, inp, V, P, out, pm, today, amount, dres)
+        if proposes and not refused_now:
+            use = [p for p in targets if p["status"] == "open"] or scope
+            if len(use) > 1:
+                return apply_group(st, inp, V, P, out, pm, today, ar, dres, use)
+            if use:
+                return single_proposal(st, inp, V, P, out, pm, today, use[0], ar, dres)
     if multi and stage == "all_today":
         targets, refused_now = scope_split(st, inp, P)
-        if reply == "yes" and not proposes and not refused_now:
-            for p in prods:
-                if p["status"] == "open":
+        if reply == "yes" and not proposes:
+            # yes to paying today: all products, or the ones named ('yes for the card, not the loans'); the others
+            # go through the persuasion steps (B4)
+            yes_to = [p for p in (targets or open_products(st)) if p["status"] == "open" and p not in refused_now]
+            for p in open_products(st):
+                if p in yes_to:
                     off = p.get("offer") or first_offer(p, P, today)
                     accept(p, off["amount"], off["date"])
+                else:
+                    p["offer"] = None
             st["multi_stage"] = None
-            return readback_or_close(st, out, V, P, pm, today)
-        st["multi_stage"] = None
-        if proposes and not refused_now and (not targets or len(targets) == len([p for p in prods if p["status"] == "open"])):
-            # one statement for everything (B6): each product validated, late ones clamped to their own deadline
-            return apply_to_all(st, inp, V, P, out, pm, today, amount, dres)
-        if proposes and targets:
-            for p in targets:
-                apply_proposal(st, p, inp, V, P, out, pm, today, amount, dres, multi)
-            if any(p["status"] == "open" and p.get("offer") is not None and p["offer"].get("kind") != "today" for p in targets):
-                return
             return next_product_or_close(st, out, V, P, pm, today)
+        st["multi_stage"] = None
+        live = open_products(st)
+        if proposes and not refused_now and (not targets or len(targets) == len(live)):
+            # one statement for everything (B6): each product validated, late ones on their own deadline
+            return apply_group(st, inp, V, P, out, pm, today, ar, dres, live)
         if intent == "too_much":
             for p in prods:
                 p["too_much"] = True
-        # no to all today: go product by product, each starting at attempt 1 (B4)
         for p in prods:
-            if p["status"] == "open":
-                p["offer"] = None
+            if p["status"] == "open" and p not in targets:
+                p["offer"] = None  # no to all today: each product starts at attempt 1 (B4)
+        if proposes and targets:
+            if len(targets) > 1:
+                return apply_group(st, inp, V, P, out, pm, today, ar, dres, targets)
+            return single_proposal(st, inp, V, P, out, pm, today, targets[0], ar, dres)
         return next_product_or_close(st, out, V, P, pm, today)
     p = cur_product(st)
     if p is None:
         return readback_or_close(st, out, V, P, pm, today)
+    off = p.get("offer") or {}
+    if off.get("replaces") and reply in ("yes", "ack") and dres.get("status") == "ok" and dres["date"] == off["replaces"] \
+            and ar.get("status") in ("none", None):
+        dres, proposes = {"status": "none"}, False  # 'yes, instead of the 30th': the alternative is accepted
+    if off.get("kind") == "confirm_amount":
+        if reply in ("yes",) and ar.get("status") in ("none", None):
+            p["offer"] = off.get("prev")
+            od = off.get("dres") or {"status": "none"}
+            return single_proposal(st, dict(inp, reply="none"), V, P, out, pm, today, p,
+                                   {"status": "ok", "c": cents(off["amount"])}, dres if dres.get("status") != "none" else od)
+        if reply == "no" and not proposes:
+            p["offer"] = off.get("prev")
+            return repeat_pending(st, out, V, P, pm, today)
     if multi:
         targets, _neg = scope_split(st, inp, P)
         if proposes and targets and p not in targets:
             for q in targets:
-                apply_proposal(st, q, inp, V, P, out, pm, today, amount, dres, multi)
-            if any(q["status"] == "open" and q.get("offer") and q["offer"].get("kind") not in ("today",) for q in targets if q["status"] == "open"):
+                apply_proposal(st, q, inp, V, P, out, pm, today, ar, dres, multi)
+                if q["status"] == "refused":
+                    q["status"], q["offer"] = "open", None
+            if any(q["status"] == "open" and q.get("offer") and q["offer"].get("kind") != "today" for q in targets):
                 return
             if p["status"] == "open":
-                out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, True, True) if p.get("offer") else "")
                 if not p.get("offer"):
                     return next_attempt(st, out, V, P, pm, today, p)
-                return
+                return repeat_pending(st, out, V, P, pm, today)
             return next_product_or_close(st, out, V, P, pm, today)
         if proposes and targets and len(targets) > 1:
-            return apply_to_all(st, inp, V, P, out, pm, today, amount, dres, only=targets)
+            return apply_group(st, inp, V, P, out, pm, today, ar, dres, targets)
     if proposes:
-        apply_proposal(st, p, inp, V, P, out, pm, today, amount, dres, multi)
-        if p["status"] == "agreed":
-            return next_product_or_close(st, out, V, P, pm, today)
-        if p["status"] == "refused":
-            return next_attempt(st, out, V, P, pm, today, p)
-        return
+        return single_proposal(st, inp, V, P, out, pm, today, p, ar, dres)
     if intent == "too_much":
         p["too_much"] = True
         if not p["floor_offered"] and p["floor"] < p["past_due"] - 0.005:
             p["floor_offered"] = True
-            date = (p.get("offer") or {}).get("date") or d_iso(today)
+            date = off.get("date")
             p["offer"] = {"amount": p["floor"], "date": date, "kind": "floor"}
-            out.say.append(L(P, "floor_offer", pm, amount=money(p["floor"], P.get("currency_word", "dollars"))))
+            out.say.append(L(P, "floor_offer", pm, amount=money(p["floor"], cw(P))))
             out.say.append(L(P, "rest_overdue", pm))
             p["rest_said"] = True
-            if date == d_iso(today):
+            if not date:
+                out.say.append(L(P, "ask_exact_day", pm))
+            elif date == d_iso(today):
                 out.say.append(L(P, "first_ask_single", pm) if not multi else offer_text(P, pm, p, p["floor"], date, today, multi, False))
             else:
                 out.say.append(offer_text(P, pm, p, p["floor"], date, today, multi, False))
             return
         return next_attempt(st, out, V, P, pm, today, p)
-    if reply == "yes" or reply == "ack" and p.get("offer") and p["offer"].get("kind") not in ("today",):
-        off = p.get("offer")
+    acked_info = reply == "ack" and asked_before in ("info", "hold")
+    if reply == "yes" or (reply == "ack" and off and off.get("kind") != "today" and not acked_info):
         if off:
-            if off.get("kind") == "confirm_date":
-                d2 = d_from(off["date"])
-                dl = d_from(p["deadline"])
-                fake = {"status": "ok", "date": off["date"]}
-                dd, cl = validate_date(p, fake, P, pm, today, out, multi, False)
+            if not off.get("date"):
+                # an amount without a day: a yes is no day (never today by default); ask once more, then the deadline
+                if not p.get("day_reasked"):
+                    p["day_reasked"] = True
+                    p["exact_asked"] = True
+                    out.say.append(L(P, "ask_exact_day", pm))
+                    return
+            elif off.get("kind") == "confirm_date":
+                dd, cl = validate_date(p, {"status": "ok", "date": off["date"]}, P, pm, today, out, multi, False)
                 if dd is None:
                     return
                 accept(p, off["amount"], dd, cl)
                 return next_product_or_close(st, out, V, P, pm, today)
-            accept(p, off["amount"], off["date"])
-            return next_product_or_close(st, out, V, P, pm, today)
+            else:
+                accept(p, off["amount"], off["date"])
+                return next_product_or_close(st, out, V, P, pm, today)
+    if acked_info:
+        return repeat_pending(st, out, V, P, pm, today)  # 'okay' to an explanation answers nothing
     if reply == "no" or intent in ("refuse", "refuse_pay"):
         return next_attempt(st, out, V, P, pm, today, p)
     if reply == "ack":
         out.say.append(L(P, "repeat", pm))
         return repeat_pending(st, out, V, P, pm, today)
     # after asking for the exact day, still no day: propose the deadline (A21) before counting a non-answer
-    if p.get("exact_asked") and not p.get("deadline_proposed") and (p.get("offer") or {}).get("kind") != "deadline":
+    if p.get("exact_asked") and not p.get("deadline_proposed") and off.get("kind") != "deadline":
         p["deadline_proposed"] = True
         dl = d_from(p["deadline"])
-        p["offer"] = {"amount": (p.get("offer") or {}).get("amount", p["past_due"]), "date": d_iso(dl), "kind": "deadline"}
+        p["offer"] = {"amount": off.get("amount", p["past_due"]), "date": d_iso(dl), "kind": "deadline"}
         out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, multi, multi))
         return
+    u = norm(inp["utterance"])
+    idx = st["products"].index(p)
+    if u and HOLD.match(u) and bump(st, "hold%d" % idx) <= 2:
+        st["asked"] = "hold"
+        out.say.append(L(P, "wait_ok", pm))
+        return
+    if u and not HESITATE.search(u) and bump(st, "talk%d:%s" % (idx, off.get("kind", ""))) <= 1:
+        return repeat_pending(st, out, V, P, pm, today)  # unrelated talk: ask once more before counting it
     # a non-answer uses one persuasion attempt (A30) unless nothing was understood at all
     if inp["utterance"]:
         return next_attempt(st, out, V, P, pm, today, p)
-    st["clarify"] = st.get("clarify", 0) + 1
-    if st["clarify"] > 2:
+    if bump(st, "n%d" % idx) > 2:
         return next_attempt(st, out, V, P, pm, today, p)
     out.say.append(L(P, "repeat", pm))
     return repeat_pending(st, out, V, P, pm, today)
 
 
-def apply_proposal(st, p, inp, V, P, out, pm, today, amount, dres, multi):
-    """A date and/or amount the customer proposed for product p (never a refusal, A29)."""
-    if amount is not None:
-        a = validate_amount(p, amount, P, pm, today, out)
+def single_proposal(st, inp, V, P, out, pm, today, p, ar, dres):
+    """A proposal for one product, then the next step: the next product or the read-back, the next persuasion
+    attempt (floor refused), or the counter-question already spoken."""
+    apply_proposal(st, p, inp, V, P, out, pm, today, ar, dres, len(st["products"]) > 1)
+    if p["status"] == "agreed":
+        return next_product_or_close(st, out, V, P, pm, today)
+    if p["status"] == "refused":
+        p["status"] = "open"
+        return next_attempt(st, out, V, P, pm, today, p)
+    if not out.say:
+        return repeat_pending(st, out, V, P, pm, today)
+
+
+def apply_proposal(st, p, inp, V, P, out, pm, today, ar, dres, multi):
+    """A date and/or amount the customer proposed for product p (never a refusal, A29). The day the customer did
+    not mention stays what the pending question said, the amount likewise (A35)."""
+    off = p.get("offer") or {}
+    if dres.get("status") == "none":
+        if off.get("date") and off.get("kind") != "today":
+            dres = {"status": "ok", "date": off["date"]}
+        elif off.get("kind") == "today" and inp.get("reply") == "yes":
+            dres = {"status": "ok", "date": off.get("date") or d_iso(today)}  # 'yes, 700' answers 'today?'
+    alt_day = date_alternative(p, dres, P, today)
+    am = amount_for(st, p, ar)
+    if am["status"] == "ambiguous":
+        # an uncertain amount is checked with the customer, never rejected as below the floor (C)
+        p["offer"] = {"amount": am["best"] / 100.0, "date": alt_day or off.get("date"), "kind": "confirm_amount",
+                      "prev": dict((k, v) for k, v in off.items() if k not in ("prev", "dres")) or None, "dres": dres}
+        out.say.append(L(P, "amount_check", pm, amount=money(am["best"] / 100.0, cw(P))))
+        return
+    if am["status"] == "ok":
+        a = validate_amount(p, am["c"], P, pm, today, out, alt_day or off.get("date"))
         if a is None:
             return
         if a == -1:
             p["status"] = "refused"
             return
     else:
-        a = (p.get("offer") or {}).get("amount", p["past_due"])
+        a = off.get("amount", p["past_due"])
         if p["too_much"] and p["floor_offered"]:
-            a = (p.get("offer") or {}).get("amount", p["floor"])
+            a = off.get("amount", p["floor"])
     if dres.get("status") == "none":
-        off = p.get("offer") or {}
-        if off.get("date") and off.get("kind") != "today":
-            dres = {"status": "ok", "date": off["date"]}
-        elif off.get("kind") == "today" and amount is not None:
-            p["offer"] = {"amount": a, "date": off.get("date") or d_iso(today), "kind": "amount_only"}
-            out.say.append(L(P, "ask_exact_day", pm))
-            return
-        else:
-            p["offer"] = {"amount": a, "date": d_iso(today), "kind": "amount_only"}
-            out.say.append(L(P, "ask_exact_day", pm))
-            return
+        p["offer"] = {"amount": a, "date": None, "kind": "amount_only"}
+        p["exact_asked"] = True
+        out.say.append(L(P, "ask_exact_day", pm))
+        return
     d, clamped = validate_date(p, dres, P, pm, today, out, multi, False)
     if d is None:
         if p.get("offer"):
@@ -2154,45 +2549,115 @@ def apply_proposal(st, p, inp, V, P, out, pm, today, amount, dres, multi):
     accept(p, a, d, clamped)
 
 
-def apply_to_all(st, inp, V, P, out, pm, today, amount, dres, only=None):
-    targets = only or [p for p in st["products"] if p["status"] == "open"]
-    if dres.get("status") in ("vague", "none", "past", "conflict", "ask"):
-        p0 = targets[0]
-        if dres.get("status") == "none" and amount is None:
-            return next_product_or_close(st, out, V, P, pm, today)
-        if not st.get("all_exact_asked") and dres.get("status") in ("vague", "none"):
-            st["all_exact_asked"] = True
-            for p in targets:
-                p["exact_asked"] = True
-            out.say.append(L(P, "ask_exact_day", pm))
-            st["multi_stage"] = "all_date"
-            return
+def apply_group(st, inp, V, P, out, pm, today, ar, dres, targets):
+    """One day (and maybe amount) for several products (B6). Each product is checked on its own: its own floor and
+    full amount, its own deadline (a day after it is recorded on the deadline and the read-back says so). A question
+    about the day is asked once for the whole group and remembered with the group (scope), never replaced by a
+    generic persuasion offer."""
+    targets = [p for p in targets if p["status"] == "open"]
+    if len(targets) <= 1:
+        if targets:
+            return single_proposal(st, inp, V, P, out, pm, today, targets[0], ar, dres)
         return next_product_or_close(st, out, V, P, pm, today)
+    s = dres.get("status")
+
+    def ask_group(text, scope_date=None):
+        st["multi_stage"] = "all_date"
+        st["scope"] = [p["id"] for p in targets]
+        if ar.get("status") not in ("none", None):
+            st["scope_ar"] = ar
+        st["scope_date"] = scope_date
+        st["group_q"] = text
+        for p in targets:
+            p["exact_asked"] = True
+        out.say.append(text)
+
+    if s == "none" and ar.get("status") in ("none", None):
+        return next_product_or_close(st, out, V, P, pm, today)
+    own_days = [(p.get("offer") or {}).get("date") for p in targets
+                if (p.get("offer") or {}).get("kind") not in (None, "today", "amount_only")]
+    if s == "none" and len(own_days) == len(targets) and all(own_days):
+        return settle_group(st, out, V, P, pm, today, ar, targets, None)
+    if s in ("vague", "none", "ask"):
+        if not st.get("all_exact_asked") or s == "ask":
+            st["all_exact_asked"] = True
+            return ask_group(L(P, "ask_exact_day", pm))
+        dl = min(d_from(p["deadline"]) for p in targets)
+        return ask_group(L(P, "deadline_offer", pm, date=spoken_date(dl, today)), d_iso(dl))
+    if s == "past":
+        return ask_group(L(P, "past_date", pm))
+    if s == "conflict":
+        return ask_group(L(P, "date_conflict", pm, date=spoken_date(d_from(dres["date"]), today)), dres["date"])
+    d = d_from(dres["date"])
+    if not is_business(d, P["calendar"]):
+        nb = next_business_on_or_after(d, P["calendar"])
+        return ask_group(L(P, "next_business_day_offer", pm, asked=spoken_date(d, today), date=spoken_date(nb, today)),
+                         d_iso(nb))
+    return settle_group(st, out, V, P, pm, today, ar, targets, d)
+
+
+def settle_group(st, out, V, P, pm, today, ar, targets, d):
+    """Accept the group's products on day d (None: each product's own pending day), each one checked against its
+    own deadline, floor and full amount. A product that needs a question keeps it pending; the first is asked."""
     for p in targets:
-        a = p["past_due"]
-        if amount is not None and len(targets) == 1:
-            a = validate_amount(p, amount, P, pm, today, out)
-            if a is None or a == -1:
-                return
-        d = d_from(dres["date"])
+        off = p.get("offer") or {}
+        day0 = d or d_from(off.get("date"))
         dl = d_from(p["deadline"])
-        if d > dl:
-            accept(p, a, d_iso(dl), True)
-        elif not is_business(d, P["calendar"]):
-            nb = next_business_on_or_after(d, P["calendar"])
-            accept(p, a, d_iso(min(nb, dl)), nb > dl)
-        else:
-            accept(p, a, d_iso(d), False)
+        day, clamped = (d_iso(dl), True) if day0 > dl else (d_iso(day0), False)
+        am = amount_for(st, p, ar)
+        if am["status"] == "none":
+            a = off.get("amount", p["past_due"]) if off.get("kind") not in ("today", None) else p["past_due"]
+            accept(p, a, day, clamped)
+            continue
+        if am["status"] == "ambiguous":
+            p["offer"] = {"amount": am["best"] / 100.0, "date": day, "kind": "confirm_amount", "prev": None,
+                          "dres": {"status": "ok", "date": day}}
+            continue
+        c = am["c"]
+        if c < cents(p["floor"]):
+            # below this product's floor: offer the floor once on the same day (A27); refused before -> attempts
+            p["offer"] = None if p.get("below_floor_offered") else {"amount": p["floor"], "date": day, "kind": "floor",
+                                                                     "below": True}
+            p["below_floor_offered"] = p["floor_offered"] = True
+            continue
+        accept(p, min(c, cents(p["past_due"])) / 100.0, day, clamped)
+    for p in targets:
+        if p["status"] == "open" and p.get("offer"):
+            st["cur"] = st["products"].index(p)
+            if p["offer"].get("below"):
+                out.say.append(L(P, "below_floor", pm, floor=money(p["floor"], cw(P))))
+                if not out.say[-1].rstrip().endswith("?"):
+                    out.say.append(offer_text(P, pm, p, p["offer"]["amount"], p["offer"]["date"], today, True, True))
+                return
+            return ask_pending(st, out, P, pm, today, p)
     return next_product_or_close(st, out, V, P, pm, today)
+
+
+def snapshot_matches(st, inp, P, today):
+    """A yes that repeats the read-back's own day or amount is still a yes to that read-back."""
+    snap = st.get("snapshot") or []
+    if not snap:
+        return False
+    dres, ar = inp["dres"], inp["ar"]
+    byid = dict((p["id"], p) for p in st["products"])
+    if dres.get("status") not in ("none", None) and not (dres.get("status") == "ok" and all(s["date"] == dres["date"] for s in snap)):
+        return False
+    if ar.get("status") not in ("none", None):
+        for s in snap:
+            am = amount_for(st, byid[s["pid"]], ar)
+            if am["status"] != "ok" or am["c"] != cents(s["amount"]):
+                return False
+    return True
 
 
 def step_confirm(st, inp, V, P, out, pm, today):
     reply, intent = inp["reply"], inp["intent"]
-    snap = st.get("snapshot") or []
-    if reply == "yes" and not inp["pay_date"] and not inp["pay_amount"] and intent not in ("too_much",):
+    bare_ack = bool(ACK_RE.match(norm(inp["utterance"]))) if inp["utterance"] else False
+    has_values = inp["dres"].get("status") != "none" or inp["ar"].get("status") not in ("none", None)
+    if reply == "yes" and not bare_ack and intent not in ("too_much",) and (not has_values or snapshot_matches(st, inp, P, today)):
         return start_writes(st, out, V, P, pm, today)
     pos, neg = scope_split(st, inp, P) if len(st["products"]) > 1 else ([], [])
-    if inp["pay_date"] or inp["pay_amount"] or intent in ("propose", "too_much", "vague_time") or neg:
+    if has_values or intent in ("propose", "too_much", "vague_time") or neg:
         # a change at the read-back: re-validate and read back again (A35). Products the customer now refuses go
         # back to the persuasion attempts.
         agreed = [p for p in st["products"] if p["status"] == "agreed"]
@@ -2201,34 +2666,44 @@ def step_confirm(st, inp, V, P, out, pm, today):
                 p["status"] = "open"
                 p["agreed"] = None
                 p["offer"] = None
-        targets = [p for p in pos if p not in neg] or ([] if neg else agreed[:1])
-        if not (inp["pay_date"] or inp["pay_amount"] or intent in ("propose", "too_much", "vague_time")):
+        targets = [p for p in pos if p not in neg] or ([] if neg else agreed[:1] if len(agreed) == 1 else agreed)
+        if not (has_values or intent in ("propose", "too_much", "vague_time")):
             targets = []
-        amount = money_value(inp["pay_amount"]) if inp["pay_amount"] else None
-        dres = parse_pay_date(inp["pay_date"], today, P["calendar"], P.get("dates") or {}) if inp["pay_date"] else {"status": "none"}
         for p in targets:
             prev = p.get("agreed") or {}
             p["status"] = "open"
-            p["offer"] = {"amount": prev.get("amount", p["past_due"]), "date": prev.get("date", d_iso(today)), "kind": "change"}
-            if intent == "too_much" and amount is None:
+            p["offer"] = {"amount": prev.get("amount", p["past_due"]), "date": prev.get("date"), "kind": "change"}
+            if intent == "too_much" and inp["ar"].get("status") in ("none", None):
                 p["too_much"] = True
-            apply_proposal(st, p, inp, V, P, out, pm, today, amount, dres, len(st["products"]) > 1)
         st["phase"] = "negotiate"
-        if out.say:
-            return
+        st["change_asked"] = False
+        if len(targets) > 1:
+            return apply_group(st, inp, V, P, out, pm, today, inp["ar"], inp["dres"], targets)
+        if targets:
+            return single_proposal(st, inp, V, P, out, pm, today, targets[0], inp["ar"], inp["dres"])
         return next_product_or_close(st, out, V, P, pm, today)
-    if reply == "no":
+    if reply == "no" and not st.get("change_asked"):
+        # 'no' to the read-back: ask what to change; the agreed values stay the pending offers (A35)
         st["phase"] = "negotiate"
-        out.say.append(L(P, "repeat", pm))
+        st["change_asked"] = True
         for p in st["products"]:
             if p["status"] == "agreed":
                 p["status"] = "open"
                 p["offer"] = {"amount": p["agreed"]["amount"], "date": p["agreed"]["date"], "kind": "change"}
                 p["agreed"] = None
-        out.say[:] = []
-        return ask_what_to_change(st, out, V, P, pm, today)
-    st["clarify"] = st.get("clarify", 0) + 1
-    if st["clarify"] > 3:
+        out.say.append(L(P, "ask_change", pm))
+        return
+    if reply == "no":
+        # a second plain no: the customer does not want this promise (a flat refusal of the offer, A30)
+        st["phase"] = "negotiate"
+        for p in st["products"]:
+            if p["status"] == "agreed":
+                p["status"] = "open"
+                p["offer"] = {"amount": p["agreed"]["amount"], "date": p["agreed"]["date"], "kind": "change"}
+                p["agreed"] = None
+        p = cur_product(st)
+        return next_attempt(st, out, V, P, pm, today, p) if p else readback_or_close(st, out, V, P, pm, today)
+    if bump(st, "confirm") > 3:
         for p in st["products"]:
             if p["status"] in ("agreed", "open"):
                 p["status"] = "refused"
@@ -2243,17 +2718,22 @@ def readback_items(st, P, pm, today):
         if p["status"] == "agreed":
             a = p["agreed"]
             key = "readback_clamped" if a.get("clamped") else "readback_item"
-            items.append(L(P, key, pm, amount=money(a["amount"], P.get("currency_word", "dollars")), product=p["phrase"],
+            items.append(L(P, key, pm, amount=money(a["amount"], cw(P)), product=p["phrase"],
                            date=spoken_date(d_from(a["date"]), today)))
     return join_and(items)
 
 
-def ask_what_to_change(st, out, V, P, pm, today):
-    p = cur_product(st)
-    if p is None:
-        return readback_or_close(st, out, V, P, pm, today)
-    out.say.append(L(P, "ask_exact_day", pm))
-    return
+def ask_pending(st, out, P, pm, today, p):
+    """Say product p's pending question: an amount check, the exact day for an amount without one, or the offer."""
+    multi = len(st["products"]) > 1
+    off = p["offer"]
+    if off.get("kind") == "confirm_amount":
+        line = L(P, "amount_check", pm, amount=money(off["amount"], cw(P)))
+    elif not off.get("date"):
+        line = L(P, "ask_exact_day", pm)
+    else:
+        return out.say.append(offer_text(P, pm, p, off["amount"], off["date"], today, multi, multi))
+    out.say.append("For your %s: %s" % (p["phrase"], line[:1].lower() + line[1:]) if multi else line)
 
 
 def start_writes(st, out, V, P, pm, today):

@@ -86,7 +86,8 @@ def extraction_schema(policy):
         {"name": "reply", "type": "string", "enum_values": ["yes", "no", "ack", "none"], "min_confidence": 0.2,
          "description": ("How the customer's LAST message answers the agent's LAST question: yes = agrees, confirms or "
                          "says it is them (yes, correct, that's me, speaking, I confirm); no = says no or declines; "
-                         "ack = only acknowledges without answering (okay, mm, alright, one moment); none = anything else.")},
+                         "ack = only acknowledges without answering (okay, mm, alright, one moment), for example after an "
+                         "explanation; none = anything else.")},
         {"name": "intent", "type": "string", "enum_values": [k for k, _ in intents] + ["none"], "min_confidence": 0.2,
          "description": intent_desc},
         {"name": "topic", "type": "string", "enum_values": [k for k, _ in topics] + ["none"], "min_confidence": 0.2,
@@ -95,10 +96,15 @@ def extraction_schema(policy):
          "description": ("Only the words of the customer's LAST message that say WHEN they will pay (for example "
                          "'on Friday', 'next Monday the 26th', 'tomorrow', 'when my salary comes'), copied exactly. "
                          "Empty if the last message names no payment day. Ignore dates that are not about paying "
-                         "(birthdays, weddings, other events).")},
+                         "(birthdays, weddings, other events). A day they say they cannot pay on ('not today', 'I can't "
+                         "pay today') is not a payment day: copy the day they can pay instead, if any. If they point back "
+                         "to a day they just named ('my salary comes on the 30th, can I pay then?'), copy that day's words.")},
         {"name": "pay_amount", "type": "string", "min_confidence": EXTRACT_MIN_CONF,
          "description": ("Only the words of the customer's LAST message that say HOW MUCH they will pay (for example "
-                         "'200 dollars', 'the minimum', 'four hundred and fifty'), copied exactly. Empty if none.")},
+                         "'200 dollars', 'the minimum', 'four hundred and fifty'), copied exactly, with any cents words "
+                         "('six hundred and thirty-seven dollars and fifty'). An amount named by reference ('the minimum', "
+                         "'the full amount', 'that') is copied as said. Empty if none, or if they only say what they "
+                         "cannot pay ('I can't pay anything').")},
     ]
 
 
