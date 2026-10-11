@@ -240,3 +240,21 @@ def test_live_c2_question_back_is_answered_without_asking_again():
     dob = pol["identity"]["questions"][0]["ask"]
     phone = pol["identity"]["questions"][1]["ask"]
     assert text.count(dob) == 1 and text.count(phone) == 1, text  # the wrong answer's retry is its own line
+
+
+# candidate 2 v3, live in_words run (simulation 9efc2d7d), PUB-06: after the floor offer the customer asked for the
+# minimum; the answer was followed by the same floor offer again, which the judge counted as offered twice
+def test_live_c2_minimum_question_after_the_floor_offer_is_answered_only():
+    script = LIVE_C2_PUB06[:4] + [
+        ("That is far too much for me to pay right now.", {"reply": "no", "intent": "too_much"}),
+        ("How much is the minimum payment? Or you tell", {"reply": "none", "intent": "none", "topic": "how_much"}),
+        ("You tell me how much I need to pay as a minimum.", {"topic": "how_much"}),
+        ("Yes, I can pay six hundred and thirty-seven dollars and fifty cents this Friday.",
+         {"reply": "yes", "pay_date": "this Friday", "pay_amount": "six hundred and thirty-seven dollars and fifty cents"}),
+        ("Yes, I confirm.", {"reply": "yes"})]
+    w, bank, pol = walk("PUB-06", script=script)
+    r = score_ledger(CASES["PUB-06"], bank.ledger)
+    text = LW.text_of(w)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
+    offers = [t for k, t, _ in LW.events(w) if k == "agent" and "Could you pay 637.50" in t]
+    assert len(offers) == 1, text

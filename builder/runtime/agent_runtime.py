@@ -2250,7 +2250,8 @@ def own_offer(inp):
 
 
 def answer_info(st, inp, out, P, pm, today):
-    """Answer an information question from the account facts. Counters and offers stay as they are."""
+    """Answer an information question from the account facts. Counters and offers stay as they are. Returns
+    'amount' when the answer was an amount (the minimum, what is owed)."""
     topic, u = inp["topic"], norm(inp["utterance"])
     if topic == "change_promise":
         out.say.append(L(P, "change_in_app", pm))
@@ -2266,7 +2267,7 @@ def answer_info(st, inp, out, P, pm, today):
             else:
                 out.say.append(L(P, "disclosure_item", pm, **product_view(p, P, today)))
                 st["said"] = {"amt": p["past_due"], "pid": p["id"], "turn": st.get("turn", 0)}
-        return
+        return "amount"
     if REPEAT_Q.search(u):
         return  # the pending question follows, said again
     out.say.append(answer_question(topic, P, pm, True))
@@ -2333,9 +2334,11 @@ def step_negotiate(st, inp, V, P, out, pm, today):
         st["human_pending"] = False
         ph = st["phase"]
     if topic in INFO_TOPICS:
-        answer_info(st, inp, out, P, pm, today)
+        kind = answer_info(st, inp, out, P, pm, today)
         if not (own_offer(inp) or reply in ("yes", "no") or intent in ("propose", "too_much", "vague_time", "refuse_pay")):
             st["asked"] = "info"
+            if kind == "amount" and ph == "negotiate" and not st.get("multi_stage"):
+                return  # D: the amount is answered; the pending offer is not made again (live judge: 'offered twice')
             return repeat_pending(st, out, V, P, pm, today)
     if intent in ("refuse_talk", "goodbye") and not own_offer(inp) and reply != "yes":
         st["refusals"] = st.get("refusals", 0) + 1

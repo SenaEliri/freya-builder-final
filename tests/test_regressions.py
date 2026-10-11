@@ -313,10 +313,10 @@ def test_minimum_question_answers_without_a_new_attempt():
         ("What is the minimum payment?", {"topic": "how_much"})])
     st = state(w)
     assert st["products"][0]["attempts_used"] == 1, st
-    assert agent(w)[-1] == ("The lowest amount I can record for your credit card ending 5512 is 412.35 dollars. "
-                            "Could you pay 1,374.50 dollars on Friday 6 November?"), text(w)
+    assert agent(w)[-1] == "The lowest amount I can record for your credit card ending 5512 is 412.35 dollars.", text(w)
     w.customer("Okay.", {"reply": "ack"})  # acknowledges the explanation: not a yes to the offer
     assert not any(t.startswith("So that is") for t in agent(w)), text(w)
+    assert agent(w)[-1] == "Could you pay 1,374.50 dollars on Friday 6 November?", text(w)  # the pending question
     assert state(w)["products"][0]["attempts_used"] == 1
     w.customer("No.", NO)
     assert agent(w)[-1].startswith("Could you pay 412.35 dollars on Friday 13 November?"), text(w)
