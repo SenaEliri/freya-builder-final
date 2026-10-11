@@ -112,7 +112,7 @@ def q_identity(en):
         '\'Could you tell me ___ again?\', e.g. your date of birth>", "ask": "<the question the agent asks for it>", '
         '"kind": "date (a full date) | digits (a fixed number of digits) | year | code (letters and/or digits, like a postcode '
         'or a registration number) | text", "length": <digits count or null>, "date_order": "DMY|MDY|YMD for dates given only '
-        'as numbers", "upper": true|false (codes in capital letters), "keep_spaces": true|false (codes keep their inner spaces; '
+        'as numbers", "answer_format": "<dates only: how the tool API wants the date sent, e.g. YYYY-MM-DD>", "upper": true|false (codes in capital letters), "keep_spaces": true|false (codes keep their inner spaces; '
         'follow the tool API description of the answer)}] in the order the brief requires, '
         '"max_wrong": <total wrong answers that end the check>, "swap_hint": <the tool API hint value meaning day and month '
         'were swapped, or null>, "swap_ask": "<what to ask then>", "fail_say": "<what the agent must tell the customer after '
@@ -525,6 +525,15 @@ def contiguous_bands(bands, problems):
     return bs
 
 
+def date_format(fmt):
+    """A date answer format from the tool API ('YYYY-MM-DD', 'DD/MM/YYYY', 'YYYYMMDD', ...) or the ISO default."""
+    f = str(fmt or "").upper().replace(" ", "")
+    m = re.search(r"(YYYY|DD|MM)([-/.]?)(YYYY|DD|MM)\2(YYYY|DD|MM)", f)
+    if m and sorted([m.group(1), m.group(3), m.group(4)]) == ["DD", "MM", "YYYY"]:
+        return m.group(0)
+    return "YYYY-MM-DD"
+
+
 def normalize_attempts(raw, first_ask, bands, problems):
     """Keep only the extra offers made after a refusal, numbered 1..n in order.
 
@@ -598,6 +607,7 @@ def assemble(A, brief_texts, toolspec, problems):
                 item["length"] = int(q.get("length") or 4)
             if q["kind"] == "date":
                 item["date_order"] = q.get("date_order") if q.get("date_order") in ("DMY", "MDY", "YMD") else "DMY"
+                item["format"] = date_format(q.get("answer_format"))
             if q["kind"] == "code":
                 item["upper"] = q.get("upper") is not False
                 item["keep_spaces"] = q.get("keep_spaces") is True

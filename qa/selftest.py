@@ -32,7 +32,8 @@ def identity_for(policy):
     for q in policy["identity"]["questions"]:
         f, kind = q["field"], q["kind"]
         if kind == "date":
-            true[f], right[f], wrong[f] = "1988-03-14", "14 March 1988.", "1 January 1970."
+            true[f] = R.format_date(datetime.date(1988, 3, 14), q.get("format") or "YYYY-MM-DD")
+            right[f], wrong[f] = "14 March 1988.", "1 January 1970."
         elif kind == "digits":
             n = int(q.get("length") or 4)
             true[f] = ("4471" * 4)[:n]

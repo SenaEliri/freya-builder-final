@@ -681,11 +681,17 @@ def clean_text_answer(text):
     return t.strip(" .!?,") or None
 
 
-def dob_complete(parts):
+def dob_complete(parts, fmt="YYYY-MM-DD"):
     try:
-        return datetime.date(int(parts["y"]), int(parts["m"]), int(parts["d"])).isoformat()
+        d = datetime.date(int(parts["y"]), int(parts["m"]), int(parts["d"]))
     except Exception:
         return None
+    return format_date(d, fmt)
+
+
+def format_date(d, fmt="YYYY-MM-DD"):
+    f = fmt or "YYYY-MM-DD"
+    return f.replace("YYYY", "%04d" % d.year).replace("MM", "%02d" % d.month).replace("DD", "%02d" % d.day)
 
 
 def parse_year(text):
@@ -1370,7 +1376,7 @@ def id_kind_parse(q, text, buf):
         for k in ("y", "m", "d"):
             if parts.get(k) is not None:
                 merged[k] = parts[k]
-        val = dob_complete(merged)
+        val = dob_complete(merged, q.get("format") or "YYYY-MM-DD")
         return val, (None if val else merged), any(parts.get(k) is not None for k in ("y", "m", "d"))
     if kind == "digits":
         n = int(q.get("length") or 0)
