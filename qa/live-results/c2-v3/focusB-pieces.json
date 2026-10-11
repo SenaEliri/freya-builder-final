@@ -1,0 +1,140 @@
+{
+ "agent_id": "02348dd0-989b-4359-bdbe-7c925c22477f",
+ "simulation_id": "d82d478f-7a30-47cf-af01-fb6b08cd7cdd",
+ "iteration_id": "b0e903ff-6cec-4221-b9f1-f3d8bbefa40e",
+ "status": "paused",
+ "seconds": null,
+ "passed": 0,
+ "total": 3,
+ "runs": 1,
+ "rows": [
+  {
+   "id": "PUB-11",
+   "level": "medium",
+   "family": "Multi-product",
+   "pass": false,
+   "failed": [
+    "conversation: All success criteria were met. In Message 12, the assistant identified all three products (credit card, personal loan, and car loan) before asking the user if they could pay. In Message 14, the assistant provided a single comprehensive read-back for all three debts, which the user confirmed in Message 15. System events confirm that three separate 'create_promise' API calls were executed, one for e"
+   ],
+   "call_id": "4151d5fd-8d9e-43f4-8b39-be831139d5ad",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_78a99b9e-73e"
+  },
+  {
+   "id": "PUB-12",
+   "level": "hard",
+   "family": "Multi-product",
+   "pass": false,
+   "failed": [
+    "conversation: All criteria were met. The identity verification for the phone number was asked twice following an initial failure (Message 10), while the date of birth was only asked once (Message 2). The agent correctly handled the collections process by making two attempts on the late-band personal loan (Messages 18 and 20) and one attempt on the early-band car loan (Message 22). System events confirm that exa"
+   ],
+   "call_id": "363a9cf8-8ade-4d0a-ad77-b9fea82f5a5f",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "customer_id": "c_bbd12986-b7a"
+  },
+  {
+   "id": "PUB-13",
+   "level": "hard",
+   "family": "Multi-product",
+   "pass": false,
+   "failed": [
+    "promises [('p1', 300.0, '2026-10-23'), ('p2', 900.0, '2026-10-23')], expected [('p1', 300.0, '2026-10-30'), ('p2', 900.0, '2026-10-23')]",
+    "conversation: The conversation failed to meet the success criteria for the following reasons: 1. The credit card promise was recorded for 23 October instead of the required 30 October. 2. The read-back in message 30 only named 23 October for both products, whereas the criteria required naming both dates (30 October and 23 October). The assistant incorrectly stated in message 20 that 23 October was the latest po"
+   ],
+   "call_id": "b91f4d1d-7226-4234-b042-d4dfac8d05e7",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_6a5d0770-fc3"
+  }
+ ],
+ "all_rows": [
+  [
+   {
+    "id": "PUB-11",
+    "level": "medium",
+    "family": "Multi-product",
+    "pass": false,
+    "failed": [
+     "conversation: All success criteria were met. In Message 12, the assistant identified all three products (credit card, personal loan, and car loan) before asking the user if they could pay. In Message 14, the assistant provided a single comprehensive read-back for all three debts, which the user confirmed in Message 15. System events confirm that three separate 'create_promise' API calls were executed, one for e"
+    ],
+    "call_id": "4151d5fd-8d9e-43f4-8b39-be831139d5ad",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_78a99b9e-73e"
+   },
+   {
+    "id": "PUB-12",
+    "level": "hard",
+    "family": "Multi-product",
+    "pass": false,
+    "failed": [
+     "conversation: All criteria were met. The identity verification for the phone number was asked twice following an initial failure (Message 10), while the date of birth was only asked once (Message 2). The agent correctly handled the collections process by making two attempts on the late-band personal loan (Messages 18 and 20) and one attempt on the early-band car loan (Message 22). System events confirm that exa"
+    ],
+    "call_id": "363a9cf8-8ade-4d0a-ad77-b9fea82f5a5f",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "add_note",
+     "add_note",
+     "close_call"
+    ],
+    "customer_id": "c_bbd12986-b7a"
+   },
+   {
+    "id": "PUB-13",
+    "level": "hard",
+    "family": "Multi-product",
+    "pass": false,
+    "failed": [
+     "promises [('p1', 300.0, '2026-10-23'), ('p2', 900.0, '2026-10-23')], expected [('p1', 300.0, '2026-10-30'), ('p2', 900.0, '2026-10-23')]",
+     "conversation: The conversation failed to meet the success criteria for the following reasons: 1. The credit card promise was recorded for 23 October instead of the required 30 October. 2. The read-back in message 30 only named 23 October for both products, whereas the criteria required naming both dates (30 October and 23 October). The assistant incorrectly stated in message 20 that 23 October was the latest po"
+    ],
+    "call_id": "b91f4d1d-7226-4234-b042-d4dfac8d05e7",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_6a5d0770-fc3"
+   }
+  ]
+ ],
+ "recovered": true,
+ "agent_version": 3
+}
