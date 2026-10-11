@@ -1,10 +1,15 @@
 {
   "team": "FILL IN: team name",
-  "members": [{ "name": "FILL IN", "email": "FILL IN" }],
+  "members": [
+    {
+      "name": "FILL IN",
+      "email": "FILL IN"
+    }
+  ],
   "repo": "https://github.com/SenaEliri/freya-builder-final",
-  "commit": "1c8fe5c4c8299edd70ab75d8732a328df1fe1311",
+  "commit": "45e067ac5cfc3123ced5fbb2f776e443f0999c4f",
   "run_command": "python3 builder/build.py {case_folder} --mock-url https://freya-bank-mock.yasarkaancan.workers.dev --slot rb-final --out submission/final",
   "workflow": "submission/final/build-the-builder-final-case.workflow.json",
-  "trace": "traces/20261011T183528Z-rb-final.txt",
+  "trace": "traces/20261011T184020Z-rb-final.txt",
   "mock_url": "https://freya-bank-mock.yasarkaancan.workers.dev"
 }
