@@ -4,9 +4,11 @@
 
 A run of a case is classed as infrastructure when the evidence says the agent never got a fair turn: no call was
 created, the call has no tool calls and no judge verdict, the simulation did not complete, or the slowest agent turn
-was over 30 s (the platform's model, not the decide code). Everything else that fails is an agent failure.
+was over 30 s (the platform's model, not the decide code), or the judge never produced a verdict while the bank
+records passed. Everything else that fails is an agent failure.
 """
 import json
+import re
 import sys
 
 
@@ -16,6 +18,9 @@ def classify(row, sim_status):
     why = " ".join(row.get("failed") or [])
     if sim_status not in (None, "completed") or not row.get("call_id"):
         return "infra"
+    judge_only = all(f.startswith("conversation:") for f in row.get("failed") or [])
+    if judge_only and re.search(r"analysis never arrived|no verdict|timed out|internal error", why, re.I):
+        return "infra"  # the bank records passed and the judge produced no verdict
     if not row.get("tools") and "no verdict" in why:
         return "infra"
     if (row.get("slowest_turn_s") or 0) > 30:

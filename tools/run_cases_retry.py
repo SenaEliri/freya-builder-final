@@ -4,7 +4,7 @@
 
 Seen on 11 Oct: GET /api/v2/simulations/{id} answered HTTP 504 while the simulation kept running; the kit's runner
 then stopped without scoring it. Only GET requests are retried (5xx, timeouts, connection errors), so a retry can
-never start a second simulation. The kit files (freya.py, tools/run_cases.py) are used unmodified.
+never start a second simulation (the one POST retried opens a practice session). The kit files (freya.py, tools/run_cases.py) are used unmodified.
 """
 import os
 import pathlib
@@ -43,7 +43,9 @@ def _retrying(fn, is_get):
 
 
 freya.api = _retrying(freya.api, lambda a, k: (a[0] if a else k.get("method")) == "GET")
-run_cases.http = score.http = _retrying(score.http, lambda a, k: len(a) < 2 and k.get("body") is None)
+# the practice bank: reads, and opening a practice session (a fresh synthetic customer, nothing scored yet)
+run_cases.http = score.http = _retrying(score.http, lambda a, k: (len(a) < 2 and k.get("body") is None) or
+                                        (a and a[0] == "/v1/practice/sessions"))
 
 
 def wait_for_idle_workspace():

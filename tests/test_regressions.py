@@ -537,3 +537,13 @@ def test_scope_keeps_a_card_named_next_to_a_loan():
     assert [p["id"] for p in got] == ["p1", "p3"]
     got = R.scope_products(st, {"utterance": "the loan", "pay_date": ""}, {})
     assert [p["id"] for p in got] == ["p2", "p3"]
+
+
+def test_shared_proposal_amount_is_checked_per_product():
+    """'the minimum for both on Friday': each product's own floor (the amount used to be ignored for groups)."""
+    w, bank = call("B", [CARD, LOAN], [
+        ("Not today, but I can pay the minimum for both on Friday.",
+         {"reply": "no", "intent": "propose", "pay_amount": "the minimum", "pay_date": "on Friday"}),
+        ("Yes, I confirm.", YES)])
+    assert promises(bank) == [("p1", 412.35, "2026-11-06"), ("p2", 215.0, "2026-11-06")], text(w)
+    assert_clean_end(w, bank, "B")
