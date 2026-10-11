@@ -1,0 +1,53 @@
+{
+ "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+ "name": "cases 16:27:14",
+ "variables_by_persona": {
+  "7f45e012-0406-4762-8252-e1336f65d702": {
+   "customer_id": "c_862f8fe8-55c",
+   "first_name": "Lena",
+   "last_name": "Hoffmann",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "d6687959-70c2-43dd-bd63-52a2598c96de": {
+   "customer_id": "c_f966f62a-d7b",
+   "first_name": "Tomas",
+   "last_name": "Novak",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "8d530cb8-1316-4a35-881b-089a5a04c3a6": {
+   "customer_id": "c_edd6a5bc-64d",
+   "first_name": "Priya",
+   "last_name": "Nair",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "dba428e0-8ad1-491d-9a18-34d1fa246371": {
+   "customer_id": "c_818224df-73f",
+   "first_name": "Samuel",
+   "last_name": "Ortiz",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "d538b039-0650-46b6-9ba8-e5e854612c4c": {
+   "customer_id": "c_e42cc8f3-e01",
+   "first_name": "Grace",
+   "last_name": "Lin",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  }
+ },
+ "argv": [
+  "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+  "--brief",
+  "A",
+  "--only",
+  "PUB-04,PUB-05,PUB-06,PUB-07,PUB-10",
+  "--style",
+  "asks_back",
+  "--out",
+  "results/c2v5/focusA-asks_back.json"
+ ],
+ "simulation_id": "120ccf90-f94f-4c98-a056-e59b12fd96b9"
+}

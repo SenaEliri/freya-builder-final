@@ -8,8 +8,34 @@ was over 30 s (the platform's model, not the decide code), or the judge never pr
 records passed. Everything else that fails is an agent failure.
 """
 import json
+import os
+import pathlib
 import re
 import sys
+
+EVIDENCE = "--evidence" in sys.argv  # read each failing call's own event log (read-only GETs; needs env.sh)
+
+
+def call_evidence(call_id):
+    """Infrastructure signatures in a call's event log, or None."""
+    root = pathlib.Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(root))
+    sys.path.insert(0, str(root / "tools"))
+    import run_cases_retry  # noqa: F401  (GET retries)
+    from builder import platform as P
+    c = P.get_call(call_id)
+    ev = [e.get("event") or {} for e in P.events(c)]
+    nodes = [e.get("node") for e in ev if e.get("event") == "node_enter"]
+    errs = " ".join(str(e.get("error")) for e in ev if "error" in str(e.get("event")))
+    if c.get("endedReason") == "exceeded-max-duration":
+        return "platform duration cap (%ss)" % c.get("duration")
+    if nodes == ["open"] and c.get("endedReason") == "customer-ended-call":
+        return "platform never processed the first turn (customer hung up at %ss)" % c.get("duration")
+    if "<!DOCTYPE html>" in errs or "<html" in errs:
+        return "bank tool calls answered with HTML error pages"
+    if "did not return a parseable result" in errs:
+        return "sandbox returned no parseable result"
+    return None
 
 
 def classify(row, sim_status):
@@ -25,6 +51,14 @@ def classify(row, sim_status):
         return "infra"
     if (row.get("slowest_turn_s") or 0) > 30:
         return "infra?"
+    if EVIDENCE and row.get("call_id"):
+        try:
+            why = call_evidence(row["call_id"])
+        except Exception:
+            why = None
+        if why:
+            row["evidence"] = why
+            return "infra"
     return "agent"
 
 
@@ -49,8 +83,9 @@ def main(paths):
             n += row["pass"]
             cells.append(c)
             if not row["pass"]:
-                details.append("- %s run %d (%s, call %s): %s" % (cid, i + 1, c, row.get("call_id"),
-                                                                  "; ".join(f[:220] for f in row.get("failed") or [])))
+                details.append("- %s run %d (%s, call %s): %s%s" % (cid, i + 1, c, row.get("call_id"),
+                                                                    ("[%s] " % row["evidence"]) if row.get("evidence") else "",
+                                                                    "; ".join(f[:220] for f in row.get("failed") or [])))
         print("| %s | %d/%d | %s |" % (cid, n, sum(1 for c in cells if c != "-"), " | ".join(cells)))
     print()
     for i, r in enumerate(runs):
@@ -62,4 +97,4 @@ def main(paths):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main([a for a in sys.argv[1:] if a != "--evidence"])

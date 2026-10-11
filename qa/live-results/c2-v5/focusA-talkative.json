@@ -1,0 +1,252 @@
+{
+ "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+ "simulation_id": "3353180f-4aa7-458c-92e4-3585888c73aa",
+ "iteration_id": "99103674-8009-41b8-ad67-b73c776fba98",
+ "seconds": 448,
+ "passed": 2,
+ "total": 5,
+ "runs": 1,
+ "final": [
+  {
+   "id": "PUB-04",
+   "family": "Dates",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-05",
+   "family": "Hardship",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-06",
+   "family": "Amounts",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-07",
+   "family": "Dates",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-10",
+   "family": "Tool failure",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  }
+ ],
+ "rows": [
+  {
+   "id": "PUB-04",
+   "level": "medium",
+   "family": "Dates",
+   "pass": false,
+   "failed": [
+    "outcome (None, None), expected ('promise', None)",
+    "promises [], expected [('p1', 1250.0, '2026-10-23')]",
+    "the call was not closed with close_call",
+    "conversation: The call failed primarily because it ended on a timeout (exceeded-max-duration) instead of being concluded by the agent or customer. While the agent correctly identified itself as a digital assistant (Message 42) and did not treat the user's date of birth as a refusal (Message 13), it failed to secure a promise for the 23 October deadline. The agent initially accepted an invalid date of 6 November"
+   ],
+   "call_id": "11c93c52-d633-4398-8f16-b8830ffa9dd4",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "get_account"
+   ],
+   "customer_id": "c_39d02d36-713",
+   "slowest_turn_s": 26.6,
+   "ended": "exceeded-max-duration"
+  },
+  {
+   "id": "PUB-05",
+   "level": "medium",
+   "family": "Hardship",
+   "pass": true,
+   "failed": [],
+   "call_id": "bf959fda-8035-47f7-998c-7c2f460a3be0",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "close_call"
+   ],
+   "customer_id": "c_d27f98b7-572",
+   "slowest_turn_s": 15.9,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-06",
+   "level": "hard",
+   "family": "Amounts",
+   "pass": false,
+   "failed": [
+    "outcome (None, None), expected ('promise', None)",
+    "promises [], expected [('p1', 637.5, '2026-10-16')]",
+    "the call was not closed with close_call",
+    "conversation: The call ended prematurely due to technical errors (API failures) immediately after identity verification. While the agent did not ask how much the customer could pay, the remaining success criteria were not met: 1. The minimum payment was never offered. 2. No promise for 637.50 on Friday 16 October was secured. The agent ended the call correctly following the technical failure, but the business o"
+   ],
+   "call_id": "d5b3979d-376e-4d19-b69a-950a1012dbc6",
+   "tools": [
+    "verify_identity",
+    "verify_identity"
+   ],
+   "customer_id": "c_0109ae8d-5ad",
+   "slowest_turn_s": 10.0,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-07",
+   "level": "hard",
+   "family": "Dates",
+   "pass": true,
+   "failed": [],
+   "call_id": "23faac12-e7a4-4e63-a1d1-f95c2a6452df",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_0f021300-ea0",
+   "slowest_turn_s": 44.6,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-10",
+   "level": "hard",
+   "family": "Tool failure",
+   "pass": false,
+   "failed": [
+    "outcome (None, None), expected ('promise', None)",
+    "promises [], expected [('p1', 365.0, '2026-10-16')]",
+    "the call was not closed with close_call",
+    "conversation: The success criteria were not met because no promise was recorded in the ledger. The system events show that the initial call to `create_promise` failed with a 'service unavailable' error, and the retry also failed with a 'Worker threw exception' error. Consequently, the requirement for exactly one promise in the ledger after the retry was not satisfied. The call ended properly with the assistant "
+   ],
+   "call_id": "678f3dcc-fa3a-4bab-8f0d-c8a95bdcbf70",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise"
+   ],
+   "customer_id": "c_fc2b3918-ec4",
+   "slowest_turn_s": 24.4,
+   "ended": "assistant-ended-call"
+  }
+ ],
+ "all_rows": [
+  [
+   {
+    "id": "PUB-04",
+    "level": "medium",
+    "family": "Dates",
+    "pass": false,
+    "failed": [
+     "outcome (None, None), expected ('promise', None)",
+     "promises [], expected [('p1', 1250.0, '2026-10-23')]",
+     "the call was not closed with close_call",
+     "conversation: The call failed primarily because it ended on a timeout (exceeded-max-duration) instead of being concluded by the agent or customer. While the agent correctly identified itself as a digital assistant (Message 42) and did not treat the user's date of birth as a refusal (Message 13), it failed to secure a promise for the 23 October deadline. The agent initially accepted an invalid date of 6 November"
+    ],
+    "call_id": "11c93c52-d633-4398-8f16-b8830ffa9dd4",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "verify_identity",
+     "get_account"
+    ],
+    "customer_id": "c_39d02d36-713",
+    "slowest_turn_s": 26.6,
+    "ended": "exceeded-max-duration"
+   },
+   {
+    "id": "PUB-05",
+    "level": "medium",
+    "family": "Hardship",
+    "pass": true,
+    "failed": [],
+    "call_id": "bf959fda-8035-47f7-998c-7c2f460a3be0",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "close_call"
+    ],
+    "customer_id": "c_d27f98b7-572",
+    "slowest_turn_s": 15.9,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-06",
+    "level": "hard",
+    "family": "Amounts",
+    "pass": false,
+    "failed": [
+     "outcome (None, None), expected ('promise', None)",
+     "promises [], expected [('p1', 637.5, '2026-10-16')]",
+     "the call was not closed with close_call",
+     "conversation: The call ended prematurely due to technical errors (API failures) immediately after identity verification. While the agent did not ask how much the customer could pay, the remaining success criteria were not met: 1. The minimum payment was never offered. 2. No promise for 637.50 on Friday 16 October was secured. The agent ended the call correctly following the technical failure, but the business o"
+    ],
+    "call_id": "d5b3979d-376e-4d19-b69a-950a1012dbc6",
+    "tools": [
+     "verify_identity",
+     "verify_identity"
+    ],
+    "customer_id": "c_0109ae8d-5ad",
+    "slowest_turn_s": 10.0,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-07",
+    "level": "hard",
+    "family": "Dates",
+    "pass": true,
+    "failed": [],
+    "call_id": "23faac12-e7a4-4e63-a1d1-f95c2a6452df",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_0f021300-ea0",
+    "slowest_turn_s": 44.6,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-10",
+    "level": "hard",
+    "family": "Tool failure",
+    "pass": false,
+    "failed": [
+     "outcome (None, None), expected ('promise', None)",
+     "promises [], expected [('p1', 365.0, '2026-10-16')]",
+     "the call was not closed with close_call",
+     "conversation: The success criteria were not met because no promise was recorded in the ledger. The system events show that the initial call to `create_promise` failed with a 'service unavailable' error, and the retry also failed with a 'Worker threw exception' error. Consequently, the requirement for exactly one promise in the ledger after the retry was not satisfied. The call ended properly with the assistant "
+    ],
+    "call_id": "678f3dcc-fa3a-4bab-8f0d-c8a95bdcbf70",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise"
+    ],
+    "customer_id": "c_fc2b3918-ec4",
+    "slowest_turn_s": 24.4,
+    "ended": "assistant-ended-call"
+   }
+  ]
+ ]
+}

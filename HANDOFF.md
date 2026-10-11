@@ -21,8 +21,9 @@ values in context (the active question, the pending offer, the per-product state
 
 Each was reproduced first (local walk with the real decide code, or a live transcript), then fixed in
 `builder/runtime/agent_runtime.py` (two wording changes in `builder/emit/workflow.py`), then covered by a test in
-`tests/test_regressions.py` or `tests/test_walk_livelike.py`. 47 of the 59 regression tests fail on candidate 1;
-the other 12 guard behaviour that already worked (B6 deadline clamping, write retries, weekend alternative, ...).
+`tests/test_regressions.py` or `tests/test_walk_livelike.py`. 56 of the 67 regression tests fail on candidate 1;
+the other 11 guard behaviour that already worked (B6 deadline clamping, write retries, weekend alternative, ...). Of the
+28 calendar/generalization tests, 26 also pass on candidate 1 (its calendar logic was already right).
 
 | | Defect (reproduced) | Fix |
 |---|---|---|
@@ -59,6 +60,7 @@ Found live on candidate 2 (real extraction, real judge) and fixed in the next ve
 | v2 → v3 | PUB-12 asks_back: after "Why do you need that?" the security question was asked again; judge: "date of birth asked again" | a question back is answered without asking the security question again |
 | v2 → v3 | PUB-12 pieces: the platform sandbox returned "did not return a parseable result" for one decide step (1 of 351 live steps; the same input replays to valid JSON locally) → honest technical ending | infrastructure; the workflow now runs a failed decide step once more (`decide_r`, same input, nothing was applied) |
 | v3 → v4 | PUB-06 in_words: "How much is the minimum?" after the floor offer was answered and the floor offer made again; judge: "offered twice" (requirement D) | an amount question is answered from the account facts and the pending offer is not made again |
+| v3 → v5 | PUB-13 pieces: "I want to pay on 30…" (cut) + "October for both of them": the merged turn kept only "October" (the second turn's extracted date replaced the first's), the day was asked again, and a second vague answer offered both products the earlier deadline — the card was recorded on 23 instead of 30 October (merge logic also in candidate 1) | a cut sentence's date/amount words are combined; a group's second vague answer gets each product's own deadline |
 
 Checked and **not** changed (already correct on candidate 1): B6 clamping with the read-back note, create_promise
 retry + `service_error` note, exactly one `close_call` as the last tool call, `recorded` only after `ok: true`,
@@ -76,11 +78,11 @@ is clean. Nothing was merged for the canvas.
 ## Tests (offline)
 
 ```bash
-python3 -m pytest -q tests        # 272 passed (170 from candidate 1 + 102 new)
+python3 -m pytest -q tests        # 274 passed (170 from candidate 1 + 104 new)
 ```
 
 - The public, speech-style and live-derived scripts also pass on the model-extracted policies
-  (`submission/*.policy.json`, the lines the live agents speak): 32/32.
+  (`submission/*.policy.json`, the lines the live agents speak): 33/33.
 - Calendar matrix (`tests/test_generalization.py`): 8 `now` days (Fridays, holidays, year end, 2027) agree with the
   team's independently written date rules (`docs/team-notes/scripts/date_rules.py`) for attempt dates, deadlines and
   weekend/holiday alternatives; the self-tests and the core fixes also pass on the messy and raw2 brief shapes
@@ -91,40 +93,26 @@ python3 -m pytest -q tests        # 272 passed (170 from candidate 1 + 102 new)
 
 ## Live tests (Freya staging, real extraction and execution)
 
-**Status at this commit (checkpoint, 11 Oct ~13:15 UTC): live validation in progress.** The candidate to freeze is **v5** (commit `9279ea0`, runtime `a6ca24d742b1`; A agent version 5, B agent version 4). v5 focused so far: B all six speech styles 17/18 (the one failure: the simulated talkative customer never gave the phone digits in ~15 turns), A in_words 5/5; the remaining A styles and the frozen 3x suites follow. Results of v1-v4 below do not validate v5 (each version changed the runtime); they are the evidence for the fixes. Every run below was
-made with `tools/run_cases_retry.py` (the kit's runner, unmodified, plus GET retries), one simulation at a time in the
-workspace; each failure was read in the call's own event log, not inferred.
+Full report with every simulation id, per-run evidence and timing: **[docs/VALIDATION.md](docs/VALIDATION.md)**.
 
-Candidates (new slots; the frozen candidate-1 agents `rb-brief-a` v3 / `rb-brief-a-brief-b` v5 were never written to;
-every publish is in `submission/candidate-2/deploys.jsonl`):
+**Final candidate: v5** — commit `9279ea0`, runtime `a6ca24d742b1`, published to new slots only:
+`rb-c2-brief-a` version 5 (agent `8cd8c4c7-81b9-4517-b3b0-90a14d6d6358`, export sha256 `a6583c8c…09d1`) and
+`rb-c2-brief-a-brief-b` version 4 (agent `02348dd0-989b-4359-bdbe-7c925c22477f`, export sha256 `17fad486…6184`).
+Exports: `submission/candidate-2/`; every publish: `submission/candidate-2/deploys.jsonl`. The frozen candidate-1
+agents (`rb-brief-a` v3, `rb-brief-a-brief-b` v5) were never written to.
 
-| Slot | Workflow | Agent | Versions published (commit) |
-|---|---|---|---|
-| `rb-c2-brief-a` | `eb8c91b8-ef17-4e43-ad6b-831096b299dd` | `8cd8c4c7-81b9-4517-b3b0-90a14d6d6358` | v1 `f453fba`, v2 `6e2bb85`, v3 `b11d5fc`, v4 `bdd6382` |
-| `rb-c2-brief-a-brief-b` | `310fbf87-6c7c-4aef-bef3-fbc5709842e3` | `02348dd0-989b-4359-bdbe-7c925c22477f` | v1 `f453fba`, v2 `6e2bb85`, v3 `b11d5fc` |
+| Frozen v5, three runs each | Result |
+|---|---|
+| Brief B suite (PUB-11..13) | **3/3 cases pass in all three runs** (9/9 calls) |
+| Brief A suite (PUB-01..10) | 7/10 cases pass in all three runs; 27/30 calls. PUB-02 and PUB-03 each failed run 1 because the platform never processed the customer's first turn (proven from the call log); PUB-07 failed run 3 when the simulated customer hung up during 17-22 s platform turns (probably latency; not provable) |
+| Strict score (a case counts only with 3/3) | **10 of 13** |
+| Focused v5 runs, affected cases × 6 speech styles | B 17/18, A 21/30; every failure traced to the platform, the bank, or a simulated customer that never answered; **no agent failure** |
 
-Focused runs (affected cases A: PUB-04/05/06/07/10, B: PUB-11/12/13; plain and every speech style). Results files with
-simulation, iteration and call ids are in `qa/live-results/`.
-
-| Agent version | Runs | Result | Failures and evidence |
-|---|---|---|---|
-| v1 | A plain | 4/5 | PUB-06 agent ("full amount" read as a proposal) → v2 |
-| v1 | A in_words (sim `79b38400`, poller lost to 504s; verdicts recovered) | 3 pass, 1 fail, 1 no verdict | PUB-06 agent (floor named twice) → v2; PUB-07 judge "analysis never arrived" (infrastructure) |
-| v2 | A × 6 styles (sims `cb5fd15f` `920b0197` `b749999d` `03f4ef23` `9b8cf5b1` `11b604b7`) | **30/30** | — |
-| v2 | B × 6 styles (sims `1e16f724` `a66ef1e1` `ffbdbd21` `28fe438d` `9398b0f7` `7c481ff1`) | 13/18 | pieces PUB-11 agent ($3) → v3; pieces PUB-12 **infrastructure** (sandbox "no parseable result"); talkative PUB-12 agent ("all day") → v3; talkative PUB-13 agent (too_much misread) → v3; asks_back PUB-12 judge conversation check (re-ask after an ask-back; its "3 attempts" claim contradicts the transcript) → v3 |
-| v3 | A plain (sim `3d4d2982`) | **5/5** | — (880 s, see timing) |
-| v3 | A in_words (sim `9efc2d7d`) | 2/5 | PUB-04, PUB-10 **infrastructure** (bank records passed; judge "analysis never arrived (300s)"); PUB-06 agent (floor offered again after "what is the minimum?") → v4 |
-| v3 | B pieces (sim `d82d478f`) | pending | platform kept it "running" > 1 h with its detail route answering 504 |
-
-Timing (`tools/sim_timing.py`, platform timestamps): the 880 s run was 526 s queued before the platform started any
-call, 171 s of calls, 172 s judge analysis, 12 s polling; inside the calls the decide step took 0.4 s median (3.5 s max)
-while the platform's extraction took 8.8 s median (43 s max) per turn, against 1.2 s in a normal run. No logic was
-changed for latency.
-
-Infrastructure seen (all on the platform side): practice bank unreachable from this network 09:07-09:12 UTC (TCP
-timeouts to its Cloudflare edge, other hosts fine); Freya API 504 on every route ~09:40-10:08 UTC; partial 504s on
-simulation detail routes from ~10:40 UTC; one sandbox parse failure in 351 decide steps; judge verdicts missing
-("analysis never arrived") on 3 calls whose bank records passed.
+Results of v1-v4 do not validate v5 (each version changed the runtime); they are the evidence for the live-found fixes
+listed above. Bank records were checked per call by the kit's scorer (outcome and reason, each product's promise
+amount and date, notes, callbacks, transfers, `close_call` last); negotiation limits, the floor named once, the
+read-back and the confirmation by the judge. Not claimed: anything about the hidden briefs, or a comparison with
+candidate 1 under today's platform conditions (candidate 1 was not re-run).
 
 ## Remaining limitations
 
@@ -138,7 +126,11 @@ simulation detail routes from ~10:40 UTC; one sandbox parse failure in 351 decid
   customer said the full amount was too much.
 - A verified customer who asks to be called back still has no callback flow (neither public brief has one).
 - `submission/messy-brief.*` and `submission/raw2-brief.*` are development exports from an older runtime.
-- Platform latency varies (agent turns of 15–30 s were seen); the organisers' runner discards slow runs.
+- Platform latency varies (agent turns of 15-50 s were seen today, against 1-2 s normally): calls hit the 420 s cap or
+  the simulated customer hangs up. The decide step itself stays under a second at the median.
+- A talkative simulated customer who never answers a security question is closed `not_verified/declined` after the
+  bounded re-asks; the brief has no outcome for "never answered", `declined` is the closest.
+- PUB-07 failed one of three frozen runs with no proven cause (see docs/VALIDATION.md).
 
 ## Build, export and test
 

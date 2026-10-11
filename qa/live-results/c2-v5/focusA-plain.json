@@ -1,0 +1,228 @@
+{
+ "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+ "simulation_id": "987c6d26-fe95-4a35-9278-195e1179e96e",
+ "iteration_id": "bbfb40a6-ef96-4a90-95d2-939f0d763d1e",
+ "seconds": 105,
+ "passed": 3,
+ "total": 5,
+ "runs": 1,
+ "final": [
+  {
+   "id": "PUB-04",
+   "family": "Dates",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-05",
+   "family": "Hardship",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-06",
+   "family": "Amounts",
+   "passes": 0,
+   "runs": 1,
+   "pass": false
+  },
+  {
+   "id": "PUB-07",
+   "family": "Dates",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  },
+  {
+   "id": "PUB-10",
+   "family": "Tool failure",
+   "passes": 1,
+   "runs": 1,
+   "pass": true
+  }
+ ],
+ "rows": [
+  {
+   "id": "PUB-04",
+   "level": "medium",
+   "family": "Dates",
+   "pass": true,
+   "failed": [],
+   "call_id": "bbf4282e-3d88-42f7-bc97-b1aa28a9165d",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_85d429b2-a91",
+   "slowest_turn_s": 17.7,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-05",
+   "level": "medium",
+   "family": "Hardship",
+   "pass": false,
+   "failed": [
+    "outcome (None, None), expected ('no_promise', 'hardship')",
+    "the call was not closed with close_call",
+    "conversation: 1. The agent did not provide a sentence of sympathy as required. 2. The support team was not offered during the brief interaction. The call ended immediately after the user confirmed their identity, preventing the success criteria from being fulfilled."
+   ],
+   "call_id": "06061c70-ebc2-43d7-a93c-794621dbea39",
+   "tools": [],
+   "customer_id": "c_2914678f-aa3",
+   "slowest_turn_s": 0.0,
+   "ended": "customer-ended-call"
+  },
+  {
+   "id": "PUB-06",
+   "level": "hard",
+   "family": "Amounts",
+   "pass": false,
+   "failed": [
+    "outcome (None, None), expected ('promise', None)",
+    "promises [], expected [('p1', 637.5, '2026-10-16')]",
+    "the call was not closed with close_call",
+    "conversation: The call ended prematurely after the identity verification step. While the agent did not ask how much the customer could pay, they also failed to offer the minimum payment or secure the required payment promise for 637.50 on Friday 16 October."
+   ],
+   "call_id": "2008ab5b-9124-4dc4-9199-c9a9b0a69680",
+   "tools": [],
+   "customer_id": "c_374ecd04-66a",
+   "slowest_turn_s": 0.0,
+   "ended": "customer-ended-call"
+  },
+  {
+   "id": "PUB-07",
+   "level": "hard",
+   "family": "Dates",
+   "pass": true,
+   "failed": [],
+   "call_id": "4641f1ff-cdf4-4396-b856-1d2d958498c3",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_3e22895c-541",
+   "slowest_turn_s": 17.4,
+   "ended": "assistant-ended-call"
+  },
+  {
+   "id": "PUB-10",
+   "level": "hard",
+   "family": "Tool failure",
+   "pass": true,
+   "failed": [],
+   "call_id": "340c436b-3699-4571-9634-f5eb579230e4",
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "create_promise",
+    "create_promise",
+    "close_call"
+   ],
+   "customer_id": "c_bdb3b908-203",
+   "slowest_turn_s": 14.5,
+   "ended": "assistant-ended-call"
+  }
+ ],
+ "all_rows": [
+  [
+   {
+    "id": "PUB-04",
+    "level": "medium",
+    "family": "Dates",
+    "pass": true,
+    "failed": [],
+    "call_id": "bbf4282e-3d88-42f7-bc97-b1aa28a9165d",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_85d429b2-a91",
+    "slowest_turn_s": 17.7,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-05",
+    "level": "medium",
+    "family": "Hardship",
+    "pass": false,
+    "failed": [
+     "outcome (None, None), expected ('no_promise', 'hardship')",
+     "the call was not closed with close_call",
+     "conversation: 1. The agent did not provide a sentence of sympathy as required. 2. The support team was not offered during the brief interaction. The call ended immediately after the user confirmed their identity, preventing the success criteria from being fulfilled."
+    ],
+    "call_id": "06061c70-ebc2-43d7-a93c-794621dbea39",
+    "tools": [],
+    "customer_id": "c_2914678f-aa3",
+    "slowest_turn_s": 0.0,
+    "ended": "customer-ended-call"
+   },
+   {
+    "id": "PUB-06",
+    "level": "hard",
+    "family": "Amounts",
+    "pass": false,
+    "failed": [
+     "outcome (None, None), expected ('promise', None)",
+     "promises [], expected [('p1', 637.5, '2026-10-16')]",
+     "the call was not closed with close_call",
+     "conversation: The call ended prematurely after the identity verification step. While the agent did not ask how much the customer could pay, they also failed to offer the minimum payment or secure the required payment promise for 637.50 on Friday 16 October."
+    ],
+    "call_id": "2008ab5b-9124-4dc4-9199-c9a9b0a69680",
+    "tools": [],
+    "customer_id": "c_374ecd04-66a",
+    "slowest_turn_s": 0.0,
+    "ended": "customer-ended-call"
+   },
+   {
+    "id": "PUB-07",
+    "level": "hard",
+    "family": "Dates",
+    "pass": true,
+    "failed": [],
+    "call_id": "4641f1ff-cdf4-4396-b856-1d2d958498c3",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_3e22895c-541",
+    "slowest_turn_s": 17.4,
+    "ended": "assistant-ended-call"
+   },
+   {
+    "id": "PUB-10",
+    "level": "hard",
+    "family": "Tool failure",
+    "pass": true,
+    "failed": [],
+    "call_id": "340c436b-3699-4571-9634-f5eb579230e4",
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ],
+    "customer_id": "c_bdb3b908-203",
+    "slowest_turn_s": 14.5,
+    "ended": "assistant-ended-call"
+   }
+  ]
+ ]
+}

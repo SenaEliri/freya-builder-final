@@ -1,0 +1,84 @@
+{
+ "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+ "name": "cases 16:40:20",
+ "variables_by_persona": {
+  "dc43655e-5805-4c5a-a9df-ece2c17bdf57": {
+   "customer_id": "c_522f0d36-724",
+   "first_name": "Daniel",
+   "last_name": "Reyes",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "130b0fa9-648b-4a57-b779-47d1b58138ad": {
+   "customer_id": "c_4907e4f6-279",
+   "first_name": "Maria",
+   "last_name": "Costa",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "e6a00fff-f78f-40a3-9232-9ea079060c47": {
+   "customer_id": "c_1efa691e-17f",
+   "first_name": "Owen",
+   "last_name": "Park",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "2703d125-6270-4775-9365-e0a1147d3804": {
+   "customer_id": "c_9b1445b2-106",
+   "first_name": "Lena",
+   "last_name": "Hoffmann",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "7c647dd0-b014-453f-8dbc-d9c8ca9c55c6": {
+   "customer_id": "c_ecafbab4-cbd",
+   "first_name": "Tomas",
+   "last_name": "Novak",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "e3e50045-6613-48a8-b713-9d16c93cede2": {
+   "customer_id": "c_c713a346-a68",
+   "first_name": "Priya",
+   "last_name": "Nair",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "8c6ebcfd-7d25-4cf4-99b1-b05806cca132": {
+   "customer_id": "c_37c21516-2bc",
+   "first_name": "Samuel",
+   "last_name": "Ortiz",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "4f522a55-019e-4b98-8a3b-f51a03bf89d2": {
+   "customer_id": "c_cd5a0aa4-e4e",
+   "first_name": "Hannah",
+   "last_name": "Schmidt",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "19d17a4e-d9fc-47d3-9d6f-bcfaedf04532": {
+   "customer_id": "c_f527fc21-5b2",
+   "first_name": "Victor",
+   "last_name": "Ionescu",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "499e40d1-e383-4cd9-8110-997620451720": {
+   "customer_id": "c_cdde7091-617",
+   "first_name": "Grace",
+   "last_name": "Lin",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  }
+ },
+ "argv": [
+  "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+  "--brief",
+  "A",
+  "--out",
+  "results/suites-v5/suiteA-r2.json"
+ ],
+ "simulation_id": "708ce9df-3b73-4010-bcbb-5eb5b4f244a9"
+}

@@ -1,0 +1,35 @@
+{
+ "agent_id": "02348dd0-989b-4359-bdbe-7c925c22477f",
+ "name": "cases 16:43:41",
+ "variables_by_persona": {
+  "87f8c9c5-a11c-490b-87c2-054fc5bd7d89": {
+   "customer_id": "c_8910f985-5a3",
+   "first_name": "Sofia",
+   "last_name": "Almeida",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "26164e39-c1d7-4e94-b8e6-f1086c319f48": {
+   "customer_id": "c_71219860-371",
+   "first_name": "Marcus",
+   "last_name": "Bell",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "577eb7d5-9366-4525-8366-b30e13bf5e22": {
+   "customer_id": "c_b439c2da-25a",
+   "first_name": "Elena",
+   "last_name": "Rossi",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  }
+ },
+ "argv": [
+  "02348dd0-989b-4359-bdbe-7c925c22477f",
+  "--brief",
+  "B",
+  "--out",
+  "results/suites-v5/suiteB-r2.json"
+ ],
+ "simulation_id": "285f1eca-ceab-42a1-8937-6852e4b5a04c"
+}
