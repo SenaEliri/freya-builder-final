@@ -1,4 +1,8 @@
-# Our builder (branch `rebuild/core`)
+# Our builder (active on `main`: validated v5)
+
+> Written first for candidate 1 on `rebuild/core`. The section "State on 11 Oct, 07:30 UTC" below is that
+> historical state; the current validation is [docs/VALIDATION.md](docs/VALIDATION.md). For the hidden briefs follow
+> [docs/HIDDEN_BRIEFS_READINESS.md](docs/HIDDEN_BRIEFS_READINESS.md).
 
 One command turns a bank brief and its tool API file into a tested phone agent on Freya:
 
@@ -38,11 +42,13 @@ At call time the agent calls only the bank's tool API. Freya's model is used onl
 ## Final day (Sunday 11 Oct, briefs at 17:00 UTC / 20:00 Istanbul, deadline 20:00 UTC / 23:00 Istanbul)
 
 1. `git pull` / use this folder as is; `source env.sh`; `python3 -m qa.identity` (note the hash).
-2. Put each final brief and its tool API file in `briefs/final/` (do not edit them).
-3. `python3 builder/build.py briefs/final/<brief>.md briefs/final/<api>.json` — once per final brief.
+2. Put each final brief and its own tool API file in a folder of its own, `briefs/final/<x>/` (do not edit them).
+3. `python3 builder/build.py briefs/final/<x>/<brief file(s)> briefs/final/<x>/<its api>.json --slot rb-<x> --out submission/final/<x>`
+   — once per final brief, one build at a time (the default slot and output folder could overwrite the candidate-1
+   slot `rb-brief-a` and earlier exports).
 4. Check the trace ends with `status: OK` and all `TEST … PASS`. If it crashed on a table the parser did not expect,
    fixing that crash is allowed; adding anything from the final brief (rules, values, names) is not.
-5. Submit `submission/<brief>.workflow.json`, the trace, and the code (this repo at that commit).
+5. Submit `submission/final/<x>/<name>.workflow.json`, the trace, and the code (this repo at that commit).
 
 Optional live check (one simulation at a time; the QA operator runs the official evaluation): there are no
 practice customers for the finals, so the builder's self-tests and chat smoke are the checks we have.
@@ -50,13 +56,13 @@ practice customers for the finals, so the builder's self-tests and chat smoke ar
 ## Checks
 
 ```bash
-/root/.local/bin/pytest -q tests          # 168 offline tests (parsers, dates, styles, failures, renamed APIs, extraction)
+python3 -m pytest -q tests                # 274 offline tests on main (parsers, dates, styles, failures, renamed APIs, extraction)
 python3 -m qa.extract_run out.json <api.json> <brief.md>...      # extraction only
 python3 tools/run_cases.py <agent_id> --brief A [--style talkative] --out results/x.json
 python3 -m qa.check_run results/x.json submission/<brief>.policy.json   # lesson checks on live calls
 ```
 
-## State on 11 Oct, 07:30 UTC
+## State on 11 Oct, 07:30 UTC (candidate 1, historical)
 
 - Builder-produced agents on the live public cases (single runs): **Brief A 10/10** plain and **10/10 in the pieces
   style**; **Brief B 3/3** plain and 3/3 in each of talkative, corrects, pieces, asks_back and in_words (after fixes);

@@ -1,0 +1,1066 @@
+{
+ "read_at": "2026-10-11T16:35:19Z",
+ "note": "Read-only re-read of the ten existing chat-comparison calls (GET /api/v2/call/{id}) and their practice-bank ledgers (re-scored with tools/score.py). No chat was started. Only user/assistant lines, the platform's own sentiment tag and summary, and call metadata are kept; phone numbers, recording URLs, cost and engine events are omitted. Customer names, dates of birth and phone digits are the fictional public practice cases.",
+ "calls": [
+  {
+   "version": "v5",
+   "scenario": "S1 hardship + discount question",
+   "case": "PUB-05",
+   "call_id": "ff501c42-98aa-4ebe-8666-51c1f1a8d34d",
+   "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+   "workflow_id": "eb8c91b8-ef17-4e43-ad6b-831096b299dd",
+   "published_version": 5,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:18:34.763Z",
+   "ended_at": "2026-10-11T16:18:57.820Z",
+   "record_updated_at": "2026-10-11T16:19:07.647Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 23,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": -1,
+    "confidence": 1
+   },
+   "summary": "An assistant from Freya Bank called Tomas Novak regarding a $780 overdue personal loan payment. Mr. Novak stated he could not pay because he recently lost his job. When he declined a transfer to customer support and asked for a discount, the assistant abruptly ended the call.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Mr Novak?"
+    ],
+    [
+     "customer",
+     "Yes, this is Tomas Novak."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "Nine September nineteen ninety."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "Eight eight four six."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your personal loan has 780 dollars past due, 21 days late. Can you make this payment today?"
+    ],
+    [
+     "customer",
+     "I lost my job last month and I cannot pay anything."
+    ],
+    [
+     "agent",
+     "I am sorry to hear that. Would you like me to connect you with the customer support team?"
+    ],
+    [
+     "customer",
+     "No, I do not want to be transferred. Can I get a discount?"
+    ],
+    [
+     "agent",
+     "Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "c3.1",
+   "scenario": "S1 hardship + discount question",
+   "case": "PUB-05",
+   "call_id": "d235dcfa-4ee4-4db7-b7e4-2efe0f491ec4",
+   "agent_id": "25183cdb-43aa-4c5e-b427-a0680b1ca71e",
+   "workflow_id": "7fd77242-9be6-4fe1-805b-673e9b99c08c",
+   "published_version": 2,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:19:33.386Z",
+   "ended_at": "2026-10-11T16:20:04.949Z",
+   "record_updated_at": "2026-10-11T16:20:19.226Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 31,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": -0.5,
+    "confidence": 0.9
+   },
+   "summary": "An assistant from Freya Bank's collections team contacted Tomas Novak regarding a $780 past-due payment on his personal loan. After verifying his identity, Mr. Novak stated he could not pay because he lost his job. He declined an offer to be transferred to customer support and asked for a discount, which the assistant could not provide, leading to the end of the call.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Mr Novak?"
+    ],
+    [
+     "customer",
+     "Yes, this is Tomas Novak."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "Nine September nineteen ninety."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "Eight eight four six."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your personal loan has 780 dollars past due, 21 days late. Can you make this payment today?"
+    ],
+    [
+     "customer",
+     "I lost my job last month and I cannot pay anything."
+    ],
+    [
+     "agent",
+     "I am sorry to hear that. Would you like me to connect you with the customer support team?"
+    ],
+    [
+     "customer",
+     "No, I do not want to be transferred. Can I get a discount?"
+    ],
+    [
+     "agent",
+     "I'm not able to offer a discount. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "v5",
+   "scenario": "S2 'cannot pay today because my salary...'",
+   "case": "PUB-04",
+   "call_id": "238f998b-b5cc-4fec-9f31-770cda7aca8b",
+   "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+   "workflow_id": "eb8c91b8-ef17-4e43-ad6b-831096b299dd",
+   "published_version": 5,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:20:44.803Z",
+   "ended_at": "2026-10-11T16:21:12.758Z",
+   "record_updated_at": "2026-10-11T16:21:26.156Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 28,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 0.5,
+    "confidence": 0.9
+   },
+   "summary": "The assistant from Freya Bank contacted Ms. Hoffmann regarding a past due car loan payment of $1,250. The customer initially proposed paying on November 6th, but agreed to the assistant's counter-offer of paying by Friday, October 23rd. The assistant confirmed this promise to pay and concluded the call.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Ms Hoffmann?"
+    ],
+    [
+     "customer",
+     "Yes, speaking."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "30 January 1984."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "2219."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your car loan has 1,250 dollars past due, 14 days late. Can you make this payment today?"
+    ],
+    [
+     "customer",
+     "I cannot pay today because my salary arrives on the sixth of November and I can pay then."
+    ],
+    [
+     "agent",
+     "Which exact day would that be?"
+    ],
+    [
+     "customer",
+     "The sixth of November."
+    ],
+    [
+     "agent",
+     "The latest date I can record is Friday 23 October. Can you pay by then?"
+    ],
+    [
+     "customer",
+     "Yes, that works."
+    ],
+    [
+     "agent",
+     "So that is 1,250 dollars for your car loan on Friday 23 October. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 1,250 dollars for your car loan on Friday 23 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "c3.1",
+   "scenario": "S2 'cannot pay today because my salary...'",
+   "case": "PUB-04",
+   "call_id": "4c82582d-b3e8-4a78-91a5-95d97d1e8f93",
+   "agent_id": "25183cdb-43aa-4c5e-b427-a0680b1ca71e",
+   "workflow_id": "7fd77242-9be6-4fe1-805b-673e9b99c08c",
+   "published_version": 2,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:21:52.818Z",
+   "ended_at": "2026-10-11T16:22:22.532Z",
+   "record_updated_at": "2026-10-11T16:22:34.233Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 30,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 0.5,
+    "confidence": 1
+   },
+   "summary": "An assistant from Freya Bank's collections team contacted Ms. Hoffmann about a car loan payment of $1,250 that was 14 days late. After verifying her identity, the assistant discussed payment options. Ms. Hoffmann initially proposed paying on November 6th, but agreed to the assistant's suggested date of Friday, October 23rd. A promise to pay was recorded for this date, and the assistant confirmed that a confirmation text would be sent.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Ms Hoffmann?"
+    ],
+    [
+     "customer",
+     "Yes, speaking."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "30 January 1984."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "2219."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your car loan has 1,250 dollars past due, 14 days late. Can you make this payment today?"
+    ],
+    [
+     "customer",
+     "I cannot pay today because my salary arrives on the sixth of November and I can pay then."
+    ],
+    [
+     "agent",
+     "The latest date I can record is Friday 23 October. Can you pay by then?"
+    ],
+    [
+     "customer",
+     "Yes, that works."
+    ],
+    [
+     "agent",
+     "So that is 1,250 dollars for your car loan on Friday 23 October. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 1,250 dollars for your car loan on Friday 23 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "v5",
+   "scenario": "S3 event date before the date of birth",
+   "case": "PUB-01",
+   "call_id": "6f3d529d-eb53-4625-be2a-a18f0fdf1e03",
+   "agent_id": "8cd8c4c7-81b9-4517-b3b0-90a14d6d6358",
+   "workflow_id": "eb8c91b8-ef17-4e43-ad6b-831096b299dd",
+   "published_version": 5,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:22:59.552Z",
+   "ended_at": "2026-10-11T16:23:34.926Z",
+   "record_updated_at": "2026-10-11T16:23:45.170Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 35,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 1,
+    "confidence": 1
+   },
+   "summary": "An assistant from Freya Bank contacts Mr. Reyes regarding a late payment of $420 on his credit card. After verifying his identity, the assistant informs him of the overdue amount. Mr. Reyes agrees to pay the full amount on the same day, and the assistant confirms this promise to pay before ending the call.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Mr Reyes?"
+    ],
+    [
+     "customer",
+     "Yes, speaking."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "My cousin's wedding is coming up on the thirtieth, so I am a bit distracted. My date of birth is the fourteenth of March nineteen eighty-eight."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "4471."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your credit card ending 4821 has 420 dollars past due, 6 days late. Can you make this payment today?"
+    ],
+    [
+     "customer",
+     "Yes, I can pay the full amount today."
+    ],
+    [
+     "agent",
+     "So that is 420 dollars for your credit card ending 4821 on Wednesday 14 October. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 420 dollars for your credit card ending 4821 on Wednesday 14 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "c3.1",
+   "scenario": "S3 event date before the date of birth",
+   "case": "PUB-01",
+   "call_id": "0a17eb3d-2d0c-4b31-8ef9-46d09b766362",
+   "agent_id": "25183cdb-43aa-4c5e-b427-a0680b1ca71e",
+   "workflow_id": "7fd77242-9be6-4fe1-805b-673e9b99c08c",
+   "published_version": 2,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:24:10.927Z",
+   "ended_at": "2026-10-11T16:24:38.560Z",
+   "record_updated_at": "2026-10-11T16:24:51.417Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 28,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 1,
+    "confidence": 1
+   },
+   "summary": "An assistant from Freya Bank contacted Mr. Reyes about a late payment of $420 on his credit card. After verifying his identity, the assistant secured a promise from Mr. Reyes to pay the full amount on the same day.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Mr Reyes?"
+    ],
+    [
+     "customer",
+     "Yes, speaking."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "My cousin's wedding is coming up on the thirtieth, so I am a bit distracted. My date of birth is the fourteenth of March nineteen eighty-eight."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "4471."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your credit card ending 4821 has 420 dollars past due, 6 days late. Can you make this payment today?"
+    ],
+    [
+     "customer",
+     "Yes, I can pay the full amount today."
+    ],
+    [
+     "agent",
+     "So that is 420 dollars for your credit card ending 4821 on Wednesday 14 October. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 420 dollars for your credit card ending 4821 on Wednesday 14 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "v5",
+   "scenario": "S4 month without a day (two products)",
+   "case": "PUB-13",
+   "call_id": "7df63bfd-56b4-424f-9968-9d1151528365",
+   "agent_id": "02348dd0-989b-4359-bdbe-7c925c22477f",
+   "workflow_id": "310fbf87-6c7c-4aef-bef3-fbc5709842e3",
+   "published_version": 4,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:25:17.987Z",
+   "ended_at": "2026-10-11T16:25:48.596Z",
+   "record_updated_at": "2026-10-11T16:26:00.624Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 30,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 0.5,
+    "confidence": 1
+   },
+   "summary": "An assistant from Freya Bank's collections team contacted Elena Rossi regarding overdue payments on her credit card ($300) and personal loan ($900). After successfully verifying her identity, the assistant discussed the debts. Ms. Rossi could not pay immediately but arranged a promise to pay for both accounts in October. She committed to paying the credit card on October 30th and the personal loan on October 23rd. The assistant confirmed these arrangements were recorded and concluded the call.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Ms Rossi?"
+    ],
+    [
+     "customer",
+     "Yes, this is Elena Rossi."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "8 January 1991."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "6604."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your credit card ending 6604 has 300 dollars past due, 4 days late. Your personal loan has 900 dollars past due, 20 days late. Can you pay all of them today?"
+    ],
+    [
+     "customer",
+     "Not today. I want to pay both of them in October."
+    ],
+    [
+     "agent",
+     "Which exact day would that be?"
+    ],
+    [
+     "customer",
+     "The thirtieth."
+    ],
+    [
+     "agent",
+     "So that is 300 dollars for your credit card ending 6604 on Friday 30 October and 900 dollars for your personal loan on Friday 23 October, the latest date I can record for it. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 300 dollars for your credit card ending 6604 on Friday 30 October is recorded."
+    ],
+    [
+     "agent",
+     "Your promise of 900 dollars for your personal loan on Friday 23 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "c3.1",
+   "scenario": "S4 month without a day (two products)",
+   "case": "PUB-13",
+   "call_id": "c9b62fd4-1621-4559-a3a4-000414d20ff2",
+   "agent_id": "d07c16c4-e607-4356-b53a-aaffc9c87523",
+   "workflow_id": "0a367732-07cf-45da-a6e0-f72de353077a",
+   "published_version": 2,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:26:28.061Z",
+   "ended_at": "2026-10-11T16:26:59.321Z",
+   "record_updated_at": "2026-10-11T16:27:13.327Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 31,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 0.5,
+    "confidence": 1
+   },
+   "summary": "An assistant from Freya Bank called Elena Rossi regarding two past-due payments: $300 for a credit card and $900 for a personal loan. Ms. Rossi was unable to pay immediately but made a promise to pay the credit card bill on October 30th and the personal loan on October 23rd. The assistant confirmed these arrangements and ended the call.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Ms Rossi?"
+    ],
+    [
+     "customer",
+     "Yes, this is Elena Rossi."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "8 January 1991."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "6604."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your credit card ending 6604 has 300 dollars past due, 4 days late. Your personal loan has 900 dollars past due, 20 days late. Can you pay all of them today?"
+    ],
+    [
+     "customer",
+     "Not today. I want to pay both of them in October."
+    ],
+    [
+     "agent",
+     "I have October. Which day in October do you mean?"
+    ],
+    [
+     "customer",
+     "The thirtieth."
+    ],
+    [
+     "agent",
+     "So that is 300 dollars for your credit card ending 6604 on Friday 30 October and 900 dollars for your personal loan on Friday 23 October, the latest date I can record for it. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 300 dollars for your credit card ending 6604 on Friday 30 October is recorded."
+    ],
+    [
+     "agent",
+     "Your promise of 900 dollars for your personal loan on Friday 23 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "v5",
+   "scenario": "S5 control: shared day for three products",
+   "case": "PUB-11",
+   "call_id": "0b96fe5c-d293-47f8-9ca0-9eff8dfb6dc8",
+   "agent_id": "02348dd0-989b-4359-bdbe-7c925c22477f",
+   "workflow_id": "310fbf87-6c7c-4aef-bef3-fbc5709842e3",
+   "published_version": 4,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:27:39.298Z",
+   "ended_at": "2026-10-11T16:27:57.944Z",
+   "record_updated_at": "2026-10-11T16:28:11.518Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 19,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 1,
+    "confidence": 1
+   },
+   "summary": "The digital assistant from Freya Bank called Sofia Almeida regarding three overdue accounts (credit card, personal loan, car loan). After successfully verifying Ms. Almeida's identity, the assistant detailed the past due amounts. The customer agreed to pay all three balances on the upcoming Friday, October 16th. The assistant recorded this promise to pay for each account and informed the customer that a confirmation text would be sent.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Ms Almeida?"
+    ],
+    [
+     "customer",
+     "Yes, this is Sofia Almeida."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "3 June 1987."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "2288."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your credit card ending 2288 has 220 dollars past due, 9 days late. Your personal loan has 640 dollars past due, 9 days late. Your car loan has 75 dollars past due, 3 days late. Can you pay all of them today?"
+    ],
+    [
+     "customer",
+     "Not today, but I can pay all three this Friday."
+    ],
+    [
+     "agent",
+     "So that is 220 dollars for your credit card ending 2288 on Friday 16 October, 640 dollars for your personal loan on Friday 16 October and 75 dollars for your car loan on Friday 16 October. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 220 dollars for your credit card ending 2288 on Friday 16 October is recorded."
+    ],
+    [
+     "agent",
+     "Your promise of 640 dollars for your personal loan on Friday 16 October is recorded."
+    ],
+    [
+     "agent",
+     "Your promise of 75 dollars for your car loan on Friday 16 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  },
+  {
+   "version": "c3.1",
+   "scenario": "S5 control: shared day for three products",
+   "case": "PUB-11",
+   "call_id": "e17abfa5-07b7-490f-a038-20a1a001a3ff",
+   "agent_id": "d07c16c4-e607-4356-b53a-aaffc9c87523",
+   "workflow_id": "0a367732-07cf-45da-a6e0-f72de353077a",
+   "published_version": 2,
+   "type": "webCall",
+   "created_at": "2026-10-11T16:28:37.977Z",
+   "ended_at": "2026-10-11T16:28:57.745Z",
+   "record_updated_at": "2026-10-11T16:29:09.100Z",
+   "ended_reason": "assistant-ended-call",
+   "duration_s": 20,
+   "sentiment": {
+    "tag": "sentiment",
+    "source": "system",
+    "value": 1,
+    "confidence": 1
+   },
+   "summary": "An assistant from Freya Bank contacts Sofia Almeida regarding three overdue payments: a credit card, a personal loan, and a car loan. After verifying her identity, Ms. Almeida agrees to pay all three outstanding balances on the upcoming Friday, October 16. The assistant confirms and records this promise to pay for each account and informs the customer that a confirmation text will be sent.",
+   "transcript": [
+    [
+     "customer",
+     "Hello?"
+    ],
+    [
+     "agent",
+     "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Ms Almeida?"
+    ],
+    [
+     "customer",
+     "Yes, this is Sofia Almeida."
+    ],
+    [
+     "agent",
+     "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?"
+    ],
+    [
+     "customer",
+     "3 June 1987."
+    ],
+    [
+     "agent",
+     "Could you tell me the last four digits of the phone number on file?"
+    ],
+    [
+     "customer",
+     "2288."
+    ],
+    [
+     "agent",
+     "Thank you, your identity is verified."
+    ],
+    [
+     "customer",
+     "Okay, what is this about?"
+    ],
+    [
+     "agent",
+     "I am calling from the collections team about a late payment. Your credit card ending 2288 has 220 dollars past due, 9 days late. Your personal loan has 640 dollars past due, 9 days late. Your car loan has 75 dollars past due, 3 days late. Can you pay all of them today?"
+    ],
+    [
+     "customer",
+     "Not today, but I can pay all three this Friday."
+    ],
+    [
+     "agent",
+     "So that is 220 dollars for your credit card ending 2288 on Friday 16 October, 640 dollars for your personal loan on Friday 16 October and 75 dollars for your car loan on Friday 16 October. Do you confirm?"
+    ],
+    [
+     "customer",
+     "Yes, I confirm."
+    ],
+    [
+     "agent",
+     "Your promise of 220 dollars for your credit card ending 2288 on Friday 16 October is recorded."
+    ],
+    [
+     "agent",
+     "Your promise of 640 dollars for your personal loan on Friday 16 October is recorded."
+    ],
+    [
+     "agent",
+     "Your promise of 75 dollars for your car loan on Friday 16 October is recorded."
+    ],
+    [
+     "agent",
+     "You will receive a text message confirming this promise. Thank you and goodbye."
+    ]
+   ],
+   "ledger_recheck": {
+    "score": {
+     "pass": true,
+     "failed": []
+    },
+    "same_as_run": true,
+    "callbacks": [],
+    "transfers": [],
+    "tools": [
+     "verify_identity",
+     "verify_identity",
+     "get_account",
+     "create_promise",
+     "create_promise",
+     "create_promise",
+     "close_call"
+    ]
+   }
+  }
+ ]
+}

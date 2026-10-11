@@ -19,7 +19,7 @@ call or simulation was started.
 | Chat API skipping a first code step | The kit documents it as "seen in tests, not guaranteed" (`docs/api.md`). Our workflows start at `open`, a conversation node with no pre-actions; the first code step (`decide`) follows an `always` transition after the customer's first reply. In all 10 chat-comparison calls, 6–8 `code_exec` steps per call completed `success`, 0 errors. Bank tools ran: 4–7 `api_call`s per call, plus `end_call` | documented limitation; does not apply to these workflows (observed) |
 | Sentiment vs scoring | README "How you are scored": bank records, then policy and honesty read by a judge, three runs per customer. Sentiment is not part of it | documented |
 
-**Consequence for the chat comparison** (`docs/SENTIMENT_COMPARISON.md` on the experiment branch): status **limited,
+**Consequence for the chat comparison** ([SENTIMENT_COMPARISON.md](SENTIMENT_COMPARISON.md)): status **limited,
 supplementary diagnostic**.
 - No first code step was skipped.
 - The customer driver answered coherently in all ten calls: each line answers the agent's question, and the "Okay."

@@ -7,6 +7,10 @@ slots `rb-c3-brief-a` / `rb-c3-brief-a-brief-b`); v5's passing results do not va
 build is **c3.1** (commit `1d9e0b6`, runtime `b04f7c198ec9`): c3 (`08fc779`) plus tighter parser rules after the
 counterexample check in section 3b; results for c3 do not validate c3.1 either.
 
+> On `main` only this review is kept. The c3/c3.1 code, `tests/test_conversation_quality.py`, the exports
+> `submission/candidate-3/` and the live records `qa/live-results/c3/` and `qa/live-results/c3.1/` named below are on
+> branch `experiment/conversation-quality` (an archive, not the submission baseline).
+
 ## 1. The grey "No sentiment" category: missing analysis, not dissatisfaction
 
 | Agent (11 Oct, analytics API, `sentimentDistribution`) | Calls | With a sentiment | Without (grey) |
@@ -125,7 +129,7 @@ agent config); the only workflow difference anywhere is the decide code, which t
 - In these simulations only change 3 occurred (PUB-05 "Can I get a discount since I can't pay anything right now?"
   -> "I'm not able to offer a discount. Thank you and goodbye.", passed). Changes 1, 2, 4 and 5 did not occur in them
   (no service failure, no event mentioned during identity, no "because my salary..." sentence, no month-only answer).
-- **Later chat checks** (`docs/SENTIMENT_COMPARISON.md`, branch `experiment/conversation-quality`): one chat per
+- **Later chat checks** ([SENTIMENT_COMPARISON.md](SENTIMENT_COMPARISON.md), evidence `qa/chat-compare/`): one chat per
   version per scenario through the chat API, scripted customer, no judge, extraction model of chat calls unverified.
   These are supplementary diagnostics, not official simulation passes. Changes **3, 4 and 5** occurred, with bank
   records identical to v5's. **Change 2 did not differentiate** the candidates (v5 also read that date of birth
