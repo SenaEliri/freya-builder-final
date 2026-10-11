@@ -79,7 +79,11 @@ def main(argv=None):
     ap.add_argument("--slot", help="workflow slot (must start with rb-)")
     ap.add_argument("--out", default=str(ROOT / "submission"))
     ap.add_argument("--no-smoke", action="store_true", help="skip the live chat smoke test")
+    ap.add_argument("--mock-url", default=os.environ.get("FREYA_MOCK_URL"),
+                    help="case folder builds: the address of your own mock of the bank's services")
     a = ap.parse_args(argv)
+    if len(a.paths) == 1 and pathlib.Path(a.paths[0]).is_dir():
+        return main_case(a, ap)
     briefs = [p for p in a.paths if not p.lower().endswith(".json")]
     apis = [p for p in a.paths if p.lower().endswith(".json")]
     if not briefs or len(apis) != 1:
@@ -104,6 +108,35 @@ def main(argv=None):
         trace.note("build crashed: %s: %s" % (type(e).__name__, str(e)[:300]))
     finally:
         trace.end(status=status, seconds=round(time.time() - t0, 1), **{k: v for k, v in result.items() if k != "policy"})
+    return 0 if status.startswith("OK") else 1
+
+
+def main_case(a, ap):
+    """A case folder (sources, service contract, no tool API file): see builder/case/build_case.py."""
+    from builder.case import build_case
+    if not a.mock_url:
+        ap.error("a case folder build needs --mock-url (or FREYA_MOCK_URL)")
+    folder = pathlib.Path(a.paths[0]).resolve()
+    t0 = time.time()
+    name = slug(folder.name)[:40]
+    slot = a.slot or ("rb-" + name)
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    (ROOT / "traces").mkdir(exist_ok=True)
+    trace = Trace(ROOT / "traces" / ("%s-%s.txt" % (stamp, slot)), echo=True)
+    files = sorted(f for f in folder.rglob("*") if f.is_file() and not f.name.startswith("."))
+    trace.start(case_folder=str(folder), files=[{"file": str(f.relative_to(folder)), "sha256": sha(f)} for f in files],
+                mock_url=a.mock_url, slot=slot, commit=git_commit(), builder_identity=identity_hash(), budget_s=BUDGET_S)
+    status, result = "FAILED", {}
+    try:
+        result = build_case.build(folder, a.mock_url, slot, name, pathlib.Path(a.out), trace, t0, smoke=not a.no_smoke,
+                                  rel=rel, sha=sha)
+        status = "OK" if result.get("self_tests_failed", 0) == 0 else "OK_WITH_TEST_FAILURES"
+    except build_case.CaseError as e:
+        trace.note("build stopped: %s" % e)
+    except Exception as e:  # never die silently: the trace says what happened
+        trace.note("build crashed: %s: %s" % (type(e).__name__, str(e)[:300]))
+    finally:
+        trace.end(status=status, seconds=round(time.time() - t0, 1), **result)
     return 0 if status.startswith("OK") else 1
 
 

@@ -22,6 +22,33 @@ About 50–95 seconds, no manual step. It writes:
 
 The workflow goes to slot `rb-<brief file name>` (created once, then updated in place and published).
 
+## Case folders (the final case)
+
+A case folder holds the bank's raw sources (mails, analysis documents, a service contract, a meeting transcript)
+and no tool API file. The same entry point takes the folder:
+
+```bash
+source env.sh
+python3 builder/build.py <case_folder> --mock-url https://<your-mock>.workers.dev [--slot rb-x] [--out submission/final]
+```
+
+About 3 minutes. What it does (`builder/case/`), nothing in it written for one bank:
+
+1. `sources.py`: reads every text file, dated by its file name; of two editions of one document the newest is used.
+   Finds the service contract (headings with a service name and a JSON request example) and parses each service.
+2. `extract.py`, Freya's model only: the rules in each part of each source (sentences kept verbatim), then the final
+   instructions per topic with later sources winning, the ways the call ends, and where each request field gets its
+   value (call variable, fixed value, or the conversation) and which services change or send something.
+3. `emit.py`: one conversation step with the instructions and every service as a tool whose address is the mock,
+   one closing step per ending (the platform says the closing sentence, so it is exact). Two deterministic guards
+   live in tool hooks: a service that changes or sends something is refused when the caller has not spoken since
+   the last service result, and request fields that come from call variables are written from the live call.
+   Each result gets the relation of its dates to the call's `now`.
+4. `build_case.py`: checks the mock answers on every service path, dry run, save and publish, a chat smoke call, export.
+   Writes `<name>.spec.json` (what the model extracted), `<name>.workflow.json` and the trace.
+
+Offline tests: `tests/test_case_folder.py` (a made-up clinic case).
+
 ## How it works
 
 1. **Tool API** (`builder/policy/openapi.py`, `roles.py`): reads the OpenAPI file and maps its field names to roles
