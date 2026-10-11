@@ -76,6 +76,28 @@ LIVE = {
         ("Yes, that works.", {"reply": "yes"}),
         ("Yes, I confirm.", {"reply": "yes"}),
     ],
+    # B talkative, PUB-11: the security answer arrived after turns cut mid-sentence; re-asking 4 times closed the call
+    "PUB-11": [
+        ("Yes, this is Sofia Almeida. Traffic was just terrible getting home today.", {"reply": "yes"}),
+        ("Work has been so busy lately. My date of birth is the third of June nineteen eighty-seven.", {"reply": "yes"}),
+        ("I've been so busy planning things because my cousin", {}),
+        ("I'm sorry, I was just saying that I'", {}),
+        ("ve been distracted, my cousin's wedding is on the 30th. The last four digits are two two eight eight.", {}),
+        ("Okay.", {"reply": "ack"}),
+        ("Not today, but I can pay all three this Friday.", {"reply": "no", "intent": "propose", "pay_date": "this Friday"}),
+        ("Yes, I confirm.", {"reply": "yes"}),
+    ],
+    # B pieces, PUB-13: 'both on October' ... 'Thirty.' must become 30 October for both (the loan clamped to its own
+    # deadline); a cut turn right after the identity check must not delay the account
+    "PUB-13": [
+        ("Yes, this is Elena Rossi.", {"reply": "yes"}),
+        ("8 January.", {}), ("Nineteen ninety-one.", {"reply": "yes"}),
+        ("Six six.", {"reply": "none"}), ("Zero four.", {"reply": "yes"}),
+        ("I can't pay today. I want to pay", {"intent": "too_much"}),
+        ("No, I want to pay both on October.", {"reply": "no", "intent": "vague_time", "pay_date": "on October"}),
+        ("Thirty.", {"intent": "propose", "pay_date": "Thirty"}),
+        ("Yes, I confirm.", {"reply": "yes"}),
+    ],
 }
 
 

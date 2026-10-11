@@ -15,6 +15,28 @@
   "this_weekday": "current_week",
   "numeric_order": "DMY"
  },
+ "amounts": {
+  "products": {
+   "credit_card": {
+    "phrase": "credit card ending {card_last4}",
+    "floor_field": "minimum_payment"
+   },
+   "personal_loan": {
+    "phrase": "personal loan",
+    "floor_field": "instalment_amount"
+   },
+   "car_loan": {
+    "phrase": "car loan",
+    "floor_field": "instalment_amount"
+   }
+  },
+  "currency_word": null,
+  "first_ask_single": "Can you make this payment today?",
+  "first_ask_multi": "Can you pay all of them today?",
+  "rest_overdue": "the rest stays overdue",
+  "below_floor": "it cannot be recorded",
+  "never_ask_how_much": true
+ },
  "bands": {
   "first_ask": {
    "date_rule": "today",
@@ -58,27 +80,17 @@
    }
   ]
  },
- "amounts": {
-  "products": {
-   "credit_card": {
-    "phrase": "credit card ending {card_last4}",
-    "floor_field": "minimum_payment"
-   },
-   "personal_loan": {
-    "phrase": "personal loan",
-    "floor_field": "instalment_amount"
-   },
-   "car_loan": {
-    "phrase": "car loan",
-    "floor_field": "instalment_amount"
-   }
-  },
-  "currency_word": null,
-  "first_ask_single": "Can you make this payment today?",
-  "first_ask_multi": "Can you pay all of them today?",
-  "rest_overdue": "the rest stays overdue",
-  "below_floor": "it cannot be recorded",
-  "never_ask_how_much": true
+ "third_party": {
+  "callback_days": [
+   "today",
+   "next_business_day"
+  ],
+  "callback_start": "10:00",
+  "callback_end": "19:00",
+  "after_now": true,
+  "max_asks": 2,
+  "condolence": "I am sorry for your loss.",
+  "wrong_number_say": null
  },
  "outcomes": {
   "promise": [
@@ -176,17 +188,49 @@
   "explain_once": "these questions protect your account",
   "decline_after": 2
  },
- "third_party": {
-  "callback_days": [
-   "today",
-   "next_business_day"
+ "interrupts": {
+  "hardship": "mention illness, a death in the family or job loss",
+  "support_queue": "support",
+  "sympathy": "one short sentence of sympathy",
+  "support_offer": "Offer to connect them with the customer support team",
+  "dispute": "\"This debt is not mine\", \"I never had this product\", or a claim that the product was closed or paid off in the past",
+  "dispute_say": null,
+  "already_paid": "\"I already paid\"",
+  "paid_say": "say that payments can take one business day to appear",
+  "restructuring": "A request for a new payment plan or lower instalments",
+  "restructuring_queue": "restructuring",
+  "human": "A request for a human",
+  "human_queue": "general",
+  "human_ask_first": true,
+  "scam_say": "say they can verify the call by phoning Freya Bank's customer service number",
+  "robot_say": "say that you are Freya Bank's digital assistant",
+  "no_info_say": "say you do not have that information",
+  "change_say": "say they can change it in the mobile app",
+  "precedence": [
+   "hardship",
+   "restructuring",
+   "human",
+   "dispute",
+   "already_paid"
   ],
-  "callback_start": "10:00",
-  "callback_end": "19:00",
-  "after_now": true,
-  "max_asks": 2,
-  "condolence": "I am sorry for your loss.",
-  "wrong_number_say": null
+  "refuse_talk_times": 2
+ },
+ "multi": {
+  "multi_enabled": true,
+  "ask_all_today": true,
+  "per_product_attempts": true,
+  "clamp_to_deadline": true,
+  "single_readback": true,
+  "notes_enabled": true,
+  "note_reasons": {
+   "refused": "refused",
+   "hardship": "hardship",
+   "dispute": "dispute",
+   "paid": "paid",
+   "service_error": "service_error"
+  },
+  "notes_on_transfer": false,
+  "closing_reason": "first_non_paid_note"
  },
  "sentences": {
   "opening": "I am a digital assistant calling from Freya Bank, and this call is recorded. Am I speaking with {title} {last_name}?",
@@ -231,49 +275,5 @@
    "title",
    "now"
   ]
- },
- "interrupts": {
-  "hardship": "mention illness, a death in the family or job loss",
-  "support_queue": "support",
-  "sympathy": "one short sentence of sympathy",
-  "support_offer": "Offer to connect them with the customer support team",
-  "dispute": "\"This debt is not mine\", \"I never had this product\", or a claim that the product was closed or paid off in the past",
-  "dispute_say": null,
-  "already_paid": "\"I already paid\"",
-  "paid_say": "say that payments can take one business day to appear",
-  "restructuring": "a request for a new payment plan or lower instalments",
-  "restructuring_queue": "restructuring",
-  "human": "a request for a human",
-  "human_queue": "general",
-  "human_ask_first": true,
-  "scam_say": "say they can verify the call by phoning Freya Bank's customer service number",
-  "robot_say": "say that you are Freya Bank's digital assistant",
-  "no_info_say": "say you do not have that information",
-  "change_say": "say they can change it in the mobile app",
-  "precedence": [
-   "hardship",
-   "restructuring",
-   "human",
-   "dispute",
-   "already_paid"
-  ],
-  "refuse_talk_times": 2
- },
- "multi": {
-  "multi_enabled": true,
-  "ask_all_today": true,
-  "per_product_attempts": true,
-  "clamp_to_deadline": true,
-  "single_readback": true,
-  "notes_enabled": true,
-  "note_reasons": {
-   "refused": "refused",
-   "hardship": "hardship",
-   "dispute": "dispute",
-   "paid": "paid",
-   "service_error": "service_error"
-  },
-  "notes_on_transfer": false,
-  "closing_reason": "first_non_paid_note"
  }
 }

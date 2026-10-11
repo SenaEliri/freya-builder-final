@@ -357,13 +357,28 @@ NEG_DAY = re.compile(r"\b(not|n't|cannot|can't|cant|unable to|won't|wont|no way)
                      r"is too soon|no)\b")
 
 
-def parse_pay_date(text, today, cal, dates_cfg):
+BARE_FILLER = {"the", "on", "of", "day", "its", "it", "s", "um", "uh", "er", "yes", "okay", "ok", "so", "maybe"}
+
+
+def parse_pay_date(text, today, cal, dates_cfg, month_hint=None):
     """Resolve a spoken payment date against `today`.
-    Returns dict(status=ok|vague|none|past|ask, date=iso, asked=words, conflict=iso)."""
+    Returns dict(status=ok|vague|none|past|ask, date=iso, asked=words, conflict=iso, month=n for 'in October').
+    month_hint: the month named in the previous answer ('on October' ... 'Thirty.' -> 30 October)."""
     t = norm(text)
     if not t:
         return {"status": "none"}
     toks = tokens(t)
+    core = [w for w in toks if w not in BARE_FILLER]
+    if core and len(core) <= 2 and not any(w in MONTHS or w in WEEKDAYS for w in core):
+        r = word_number(core, 0)
+        m0 = re.match(r"^(\d{1,2})(st|nd|rd|th)?$", core[0])
+        val = int(m0.group(1)) if m0 else (r[0] if r and r[1] == len(core) else None)
+        if val is not None and 1 <= val <= 31 and (len(core) == 1 or r):
+            # a bare day number answering 'which exact day?'
+            d = _month_day(today, val, month_hint, None) if month_hint else _next_day_number(today, val)
+            if d is None:
+                return {"status": "ask"}
+            return {"status": "ok", "date": d_iso(d)} if d >= today else {"status": "past", "date": d_iso(d)}
     cands = []
     # explicit corrections: keep only what follows the last correction marker
     m = list(re.finditer(r"\b(sorry|i mean|actually|no wait|rather|correction)\b", t))
@@ -439,6 +454,8 @@ def parse_pay_date(text, today, cal, dates_cfg):
                 continue
         i += 1
     if day_num is not None:
+        if mon is None and month_hint:
+            mon = month_hint
         if mon is not None:
             d = _month_day(today, day_num, mon, year)
         else:
@@ -458,7 +475,7 @@ def parse_pay_date(text, today, cal, dates_cfg):
             d = today + datetime.timedelta(days=(wd - today.weekday()) % 7)
         cands.append(("ok", d))
     elif mon is not None:
-        return {"status": "vague"}
+        return {"status": "vague", "month": mon}
     if not cands:
         if VAGUE.search(t):
             return {"status": "vague"}
@@ -1036,6 +1053,27 @@ def is_cut(inp):
     return False
 
 
+def should_wait(st, inp, P, V=None):
+    """Wait for the rest of a cut turn, in any phase, unless the fragment already holds what this step needs."""
+    if st.get("waits", 0) >= 2 or not is_cut(inp):
+        return False
+    if st.get("phase") == "identity" and V is not None:
+        absorb_verify(st, V, P)  # the last answer may have completed the check: then the account comes first
+    ph = st.get("phase")
+    if ph in TALK_PHASES:
+        return True
+    if ph == "identity":
+        idq = P["identity"]["questions"]
+        q = idq[min(st["id"].get("q", 0), len(idq) - 1)]
+        val, _buf, _got = id_kind_parse(q, inp["utterance"], st["id"].get("buf"))
+        return not val and inp["intent"] not in ("refuse_talk", "wants_human") and inp["topic"] not in ("human",)
+    if ph == "person":
+        return inp["reply"] not in ("yes", "no") and inp["intent"] in ("", "none")
+    if ph == "third_party":
+        return not re.search(r"\d|tomorrow|today|morning|afternoon|evening|noon|o'clock", norm(inp["utterance"]))
+    return False
+
+
 def merge_fragment(st, inp):
     """A customer turn cut at a pause ('I can pay that on Thursday,') is completed by the next one before deciding:
     the next turn's values win, the fragment fills what the next turn lacks."""
@@ -1059,7 +1097,7 @@ def run(V, P):
     V["say"] = ""
     if st.get("fragment"):
         inp = merge_fragment(st, inp)
-    if st.get("phase") in TALK_PHASES and is_cut(inp) and st.get("waits", 0) < 2:
+    if should_wait(st, inp, P, V):
         # the customer was cut off mid-sentence (a pause ended their turn): wait for the rest before deciding
         st["waits"] = st.get("waits", 0) + 1
         st["fragment"] = dict(inp)
@@ -1409,9 +1447,10 @@ def step_identity(st, inp, V, P, out, pm):
         out.say.append(q["ask"])
         return
     st["clarify"] = st.get("clarify", 0) + 1
-    if st["clarify"] > 3:
+    if st["clarify"] > 4:
         return end_call(st, out, V, P, "id_declined", [])
-    out.say.append(q["ask"])
+    # never the same words three times in a row: alternate the question with a 'didn't catch that' variant
+    out.say.append(q["ask"] if st["clarify"] % 2 else L(P, "id_unreadable", pm, label=q.get("label", "")))
 
 
 def precompute_verify(st, out, V, P, pm, q):
@@ -1953,10 +1992,21 @@ def step_offer(st, inp, V, P, out, pm, today):
     multi = len(prods) > 1
     stage = st.get("multi_stage")
     amount = money_value(inp["pay_amount"]) if inp["pay_amount"] else None
-    dres = parse_pay_date(inp["pay_date"], today, P["calendar"], P.get("dates") or {}) if inp["pay_date"] else {"status": "none"}
+    dres = parse_pay_date(inp["pay_date"], today, P["calendar"], P.get("dates") or {}, st.get("month_hint")) \
+        if inp["pay_date"] else {"status": "none"}
+    if dres.get("month"):
+        st["month_hint"] = dres["month"]  # 'on October' -> the next bare day number is in October
+    elif dres.get("status") == "ok":
+        st["month_hint"] = None
     proposes = amount is not None or dres.get("status") not in ("none",) or intent in ("propose", "vague_time")
     if intent == "vague_time" and dres.get("status") == "none":
         dres = {"status": "vague"}
+    if multi and stage == "all_date":
+        # the exact day was asked for every product at once: a day without a narrower scope still covers all
+        st["multi_stage"] = None
+        targets, refused_now = scope_split(st, inp, P)
+        if proposes and not refused_now and (not targets or len(targets) == len([p for p in prods if p["status"] == "open"])):
+            return apply_to_all(st, inp, V, P, out, pm, today, amount, dres)
     if multi and stage == "all_today":
         targets, refused_now = scope_split(st, inp, P)
         if reply == "yes" and not proposes and not refused_now:

@@ -256,8 +256,8 @@
   "hardship": "mention illness, a death in the family or job loss",
   "dispute": "\"This debt is not mine\", \"I never had this product\", or a claim that the product was closed or paid off in the past",
   "already_paid": "\"I already paid\"",
-  "restructuring": "a request for a new payment plan or lower instalments",
-  "human": "a request for a human",
+  "restructuring": "A request for a new payment plan or lower instalments",
+  "human": "A request for a human",
   "precedence": [
    "hardship",
    "restructuring",
