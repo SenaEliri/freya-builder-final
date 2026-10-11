@@ -300,6 +300,9 @@ def build(spec, contract, mock_url, slow_service_ms=30000):
               "failures": "TRIES, FAILURES, TRANSFERS AND ENDINGS", "security": "SECURITY AND CONDUCT"}
     parts = ["You are the phone voice assistant described by the instructions below. You are in a live call. Speak %s with the caller, in short natural sentences." % language,
              PLATFORM_RULES]
+    if sections.get("assume"):
+        parts.append("WHAT NO SERVICE TELLS YOU (these lines override any condition below that needs such a fact)\n"
+                     + "\n".join("- " + line for line in sections["assume"]))
     if sections.get("outline"):
         parts.append("THE NORMAL COURSE OF A CALL (details follow below)\n" + "\n".join(sections["outline"]))
     for key in ("start", "reading", "actions", "failures", "security"):

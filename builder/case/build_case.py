@@ -111,7 +111,7 @@ def build(folder, mock_url, slot, name, out_dir, trace, t0, smoke=True, rel=str,
     spec = extract.extract(docs, contract, trace=trace, parallel=4, deadline=t0 + EXTRACT_BUDGET_S)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / ("%s.spec.json" % name)).write_text(json.dumps(spec, indent=1, ensure_ascii=False))
-    empty = [k for k, v in spec["sections"].items() if not v and k != "outline"]
+    empty = [k for k, v in spec["sections"].items() if not v and k not in ("outline", "assume")]
     trace.test("instructions extracted for every topic", not empty and bool(spec["endings"]), problems=spec["problems"][:20],
                lines={k: len(v) for k, v in spec["sections"].items()}, endings=len(spec["endings"]), file=rel(out_dir / ("%s.spec.json" % name)))
     if len(empty) > 2 or not spec["endings"]:

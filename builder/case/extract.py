@@ -79,6 +79,14 @@ as it ends ("last_sentence", verbatim in its original language, "" if the source
 One entry per different last sentence. Reply with one JSON object:
 {"endings": [{"destination": "...", "when": "...", "last_sentence": "..."}]}"""
 
+ASSUME_Q = """The CONTEXT is every rule found in the sources for a phone voice assistant, oldest source first.
+Some rules depend on a fact that, by the sources' own account, no service and no call variable gives the assistant
+(for example a flag that was asked for and does not exist yet, or a limit nobody can check during the call).
+List each such fact once. For each, give the instruction that lets the assistant act in the ordinary case without it:
+which offer it still makes, which step it still takes, and that the service decides.
+Reply with one JSON object: {"assume": [{"fact": "the fact that cannot be known in the call", "instruction": "what you do, as an imperative sentence to the assistant"}]}
+If there is none reply {"assume": []}."""
+
 WIRING_Q = """The CONTEXT holds the task description of a phone voice assistant and the services it can call, each with
 an example request.
 Answer with one JSON object:
@@ -151,6 +159,7 @@ def reduce_rules(rules, trace, parallel, deadline):
     ctx = rules_text(rules)
     jobs = [(key, ctx, REDUCE_Q % {"topic": text}, "final instructions: %s" % key) for key, text in TOPICS]
     jobs.append(("endings", ctx, ENDINGS_Q, "ways the call ends"))
+    jobs.append(("assume", ctx, ASSUME_Q, "facts no service provides and what to assume"))
     answers = _ask_all(jobs, trace, parallel, deadline)
     sections, problems = {}, []
     for key, _ in TOPICS:
@@ -169,6 +178,13 @@ def reduce_rules(rules, trace, parallel, deadline):
                                 "last_sentence": str(e.get("last_sentence") or "").strip()})
     if not endings:
         problems.append("no call endings found")
+    parsed, _ = answers.get("assume", (None, ""))
+    assume = []
+    if isinstance(parsed, dict) and isinstance(parsed.get("assume"), list):
+        for a in parsed["assume"][:8]:
+            if isinstance(a, dict) and str(a.get("instruction") or "").strip():
+                assume.append("You cannot know: %s. So: %s" % (str(a.get("fact") or "").strip().rstrip("."), str(a["instruction"]).strip()))
+    sections["assume"] = assume
     return sections, endings, problems
 
 

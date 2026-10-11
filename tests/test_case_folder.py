@@ -198,3 +198,12 @@ def test_consent_guard_wants_a_clear_yes(tmp_path):
     assert allowed(read_only, "go on then")  # only services that change something are guarded
     v = {"assistant.total_turns": 5, "last_service_turn": "4"}  # no transcript visible: the turn rule alone applies
     exec(pre, {"vars": v, "config": {}})
+
+
+def test_unknowable_facts_go_to_the_top_of_the_instructions(tmp_path):
+    docs, _ = S.read_sources(make_case(tmp_path))
+    s = spec()
+    s["sections"]["assume"] = ["You cannot know: whether the yearly move is used. So: always offer the move."]
+    wf, _ = emit.build(s, S.find_contract(docs), "https://mock.example")
+    p = wf["system_prompt"]
+    assert "always offer the move" in p and p.index("WHAT NO SERVICE TELLS YOU") < p.index("OFFERS AND ACTIONS")
