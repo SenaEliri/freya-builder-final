@@ -1,5 +1,11 @@
 # Hand-off — candidate 2: runtime fixes on top of candidate 1 (11 Oct 2026)
 
+> **Submission baseline: v5** (tag `baseline-v5-validated`, exports `submission/candidate-2/`, validation
+> `docs/VALIDATION.md`). An experimental conversation-quality candidate **c3** (five small wording/reading fixes found
+> in v5 transcripts) lives on branch `experiment/conversation-quality` with its own agents (`rb-c3-*`); its review,
+> including what the grey "No sentiment" analytics bucket means, is in `docs/CONVERSATION_QUALITY.md`. c3 is **not**
+> validated for Brief B (platform outage during its checks) and v5's results do not carry over to it.
+
 ## Source
 
 | | |
