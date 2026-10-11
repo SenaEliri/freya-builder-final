@@ -1,6 +1,8 @@
 """Score a live run whose poller died (platform 504s), from what tools/run_cases_retry.py saved before polling.
 
     python3 tools/recover_run.py results/c2v3/focusB-pieces.json.pending.json [--simulation <id>]
+    python3 tools/recover_run.py results/c2v3/focusB-pieces.json --simulation <id>   # no pending file: the customer
+                                                                                     # ids are read from each call's log
 
 Reads the practice customers of the run (<out>.pending.json), waits for the simulation to finish, then scores every
 case exactly like tools/run_cases.py: the bank's ledger (tools/score.py) plus the judge's verdict. Writes <out> with
@@ -27,7 +29,11 @@ def main():
     ap.add_argument("pending")
     ap.add_argument("--simulation")
     a = ap.parse_args()
-    rec = json.load(open(a.pending))
+    if a.pending.endswith(".pending.json"):
+        rec = json.load(open(a.pending))
+        out = a.pending[:-len(".pending.json")]
+    else:
+        rec, out = {"variables_by_persona": None, "agent_id": None}, a.pending
     sim_id = a.simulation or rec.get("simulation_id")
     if not sim_id:
         sys.exit("no simulation id recorded; pass --simulation")
@@ -43,6 +49,19 @@ def main():
     its = freya.api("GET", "/api/v2/simulations/%s/iterations" % sim_id)
     it = (its.get("iterations") or its.get("items") or its)[0]
     judge = dict((r["personaId"], r) for r in freya.get_iteration(sim_id, it["id"])["runs"])
+    if not rec.get("variables_by_persona"):
+        rec["agent_id"] = s.get("agentId")
+        rec["variables_by_persona"] = {}
+        for pid, j in judge.items():
+            cid = None
+            for m in freya.get_call(j["callId"]).get("messages") or []:
+                if m.get("role") == "system" and '"customer_id"' in (m.get("message") or ""):
+                    try:
+                        cid = json.loads(m["message"])["variable_table"]["customer_id"]["value"]
+                        break
+                    except Exception:
+                        continue
+            rec["variables_by_persona"][pid] = {"customer_id": cid}
     rows = []
     for pid, variables in rec["variables_by_persona"].items():
         cid = case_of.get(pid)
@@ -59,7 +78,6 @@ def main():
         for f in r["failed"]:
             print("       -", f[:260])
     rows.sort(key=lambda x: x["id"])
-    out = a.pending[:-len(".pending.json")]
     json.dump({"agent_id": rec["agent_id"], "simulation_id": sim_id, "iteration_id": it["id"], "status": s.get("status"),
                "seconds": None, "passed": sum(r["pass"] for r in rows), "total": len(rows), "runs": 1, "rows": rows,
                "all_rows": [rows], "recovered": True, "agent_version": it.get("agentVersionNumber")},
