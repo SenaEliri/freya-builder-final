@@ -1167,7 +1167,8 @@ class Out(object):
 RUNTIME_LINES = {"go_on": "Please go on.", "floor_info": "The lowest amount I can record for your {product} is {amount}.",
                  "amount_check": "Just to be sure, did you mean {amount}?",
                  "ask_change": "What would you like to change, the amount or the date?",
-                 "wait_ok": "Of course, take your time."}
+                 "wait_ok": "Of course, take your time.",
+                 "deadline_offer_multi": "The latest dates I can record are {items}. Can you pay by then?"}
 
 
 def L(P, key, mp=None, **kw):
@@ -1353,6 +1354,10 @@ def merge_fragment(st, inp):
     for k in ("pay_date", "pay_amount", "reply", "intent", "topic"):
         if not inp.get(k) and fr.get(k):
             out[k] = fr[k]
+    for k in ("pay_date", "pay_amount"):
+        # one sentence cut at a pause: 'on 30...' + 'October' is 'on 30... October', not just 'October' (live, pieces)
+        if fr.get(k) and inp.get(k) and norm(fr[k]) not in norm(inp[k]) and norm(inp[k]) not in norm(fr[k]):
+            out[k] = fr[k] + " " + inp[k]
     return out
 
 
@@ -2387,6 +2392,15 @@ def step_offer(st, inp, V, P, out, pm, today, asked_before=None):
         # the exact day was asked for a group of products at once: a day without a narrower scope covers that group
         st["multi_stage"] = None
         scope = [p for p in prods if p["id"] in (st.get("scope") or []) and p["status"] == "open"] or open_products(st)
+        if reply == "yes" and dres.get("status") == "none" and st.get("scope_date") == "per_product":
+            own = st.pop("scope_dates", None) or {}
+            for p in scope:
+                if p["id"] in own:
+                    p["offer"] = {"amount": p["past_due"], "date": own[p["id"]], "kind": "deadline"}
+            if ar.get("status") in ("none", None) and st.get("scope_ar"):
+                ar = st["scope_ar"]
+            st["scope_date"], st["group_q"], st["scope_ar"] = None, None, None
+            return settle_group(st, out, V, P, pm, today, ar, [p for p in scope if p["id"] in own], None)
         if reply == "yes" and dres.get("status") == "none" and st.get("scope_date"):
             dres, proposes = {"status": "ok", "date": st["scope_date"]}, True
         if ar.get("status") in ("none", None) and st.get("scope_ar"):
@@ -2629,8 +2643,13 @@ def apply_group(st, inp, V, P, out, pm, today, ar, dres, targets):
         if not st.get("all_exact_asked") or s == "ask":
             st["all_exact_asked"] = True
             return ask_group(L(P, "ask_exact_day", pm))
-        dl = min(d_from(p["deadline"]) for p in targets)
-        return ask_group(L(P, "deadline_offer", pm, date=spoken_date(dl, today)), d_iso(dl))
+        # A21 for a group: each product's own deadline, never one product's deadline for all (B3)
+        dls = [(p, d_from(p["deadline"])) for p in targets]
+        if len(set(d for _, d in dls)) == 1:
+            return ask_group(L(P, "deadline_offer", pm, date=spoken_date(dls[0][1], today)), d_iso(dls[0][1]))
+        st["scope_dates"] = dict((p["id"], d_iso(d)) for p, d in dls)
+        items = join_and(["%s for your %s" % (spoken_date(d, today), p["phrase"]) for p, d in dls])
+        return ask_group(L(P, "deadline_offer_multi", pm, items=items), "per_product")
     if s == "past":
         return ask_group(L(P, "past_date", pm))
     if s == "conflict":

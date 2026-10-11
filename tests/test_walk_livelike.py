@@ -258,3 +258,39 @@ def test_live_c2_minimum_question_after_the_floor_offer_is_answered_only():
     assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
     offers = [t for k, t, _ in LW.events(w) if k == "agent" and "Could you pay 637.50" in t]
     assert len(offers) == 1, text
+
+
+# candidate 2 v3, live pieces run (simulation d82d478f), PUB-13: 'I want to pay on 30...' (cut) + 'October for both
+# of them.': the merged turn kept only 'October' (the second turn's pay_date replaced the first's), the day was asked
+# again, and a second vague answer offered the group the EARLIER deadline, so the card got 23 instead of 30 October
+LIVE_C2_PUB13_PIECES = [
+    ("Yes, this is Elena Rossi.", {"reply": "yes"}),
+    ("8 January...", {"reply": "none", "intent": "none", "topic": "none"}), ("1991.", {"reply": "yes"}),
+    ("66...", {"reply": "none", "intent": "none", "topic": "none"}), ("04.", {"reply": "yes"}),
+    ("I can't pay today. I want to pay on 30...", {"intent": "propose", "pay_date": "on 30..."}),
+    ("I can't pay today. I want to pay on 30...", {"reply": "no", "intent": "propose", "pay_date": "on 30..."}),
+    ("October for both of them.", {"reply": "none", "intent": "propose", "topic": "none", "pay_date": "October",
+                                   "pay_amount": "both of them"}),
+    ("Yes, I confirm.", {"reply": "yes"}),
+]
+
+
+def test_live_c2_cut_day_and_month_are_one_date():
+    w, bank, pol = walk("PUB-13", script=LIVE_C2_PUB13_PIECES)
+    text = LW.text_of(w)
+    r = score_ledger(CASES["PUB-13"], bank.ledger)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
+    assert "Which exact day" not in text, text
+
+
+def test_second_vague_answer_for_a_group_gets_each_products_own_deadline():
+    script = LIVE_C2_PUB13_PIECES[:5] + [("Okay.", {"reply": "ack"}),
+        ("Not today. I want to pay both of them in October.", {"reply": "no", "intent": "vague_time", "pay_date": "in October"}),
+        ("Sometime in October.", {"intent": "vague_time", "pay_date": "in October"}),
+        ("Yes, I can pay then.", {"reply": "yes", "pay_date": "then"}), ("Yes, I confirm.", {"reply": "yes"})]
+    w, bank, pol = walk("PUB-13", script=script)
+    text = LW.text_of(w)
+    # each product's own deadline: the card (early band) 2 November, the loan (late band) 23 October
+    assert "The latest dates I can record are Monday 2 November for your credit card ending" in text, text
+    assert sorted((p["product_id"], p["date"]) for p in bank.ledger["promises"]) == \
+        [("p1", "2026-11-02"), ("p2", "2026-10-23")], text
