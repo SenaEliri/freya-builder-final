@@ -1,0 +1,28 @@
+{
+ "policy": "submission/brief-a-brief-b.policy.json",
+ "policy_sha256": "68598e5fd6ec8e0327163ad68a30fb624995f84ec417533d52b745b05a7a4951",
+ "openapi_sha256": "9a8410b12e5c82b6c6a30e9ed7030574d6f919cafdb1e035cef7bd876b0badb8",
+ "source_commit": "08fc779aed5cce74a5e6b3597280a11a5f7b4d35",
+ "runtime_hash": "e36a30b4efa7",
+ "nodes": 104,
+ "decide_code_bytes": 37465,
+ "self_tests": 10,
+ "built_at": "2026-10-11T14:56:48+00:00",
+ "published": true,
+ "slot": "rb-c3-brief-a-brief-b",
+ "workflow_id": "0a367732-07cf-45da-a6e0-f72de353077a",
+ "agent_id": "d07c16c4-e607-4356-b53a-aaffc9c87523",
+ "version": 1,
+ "smoke_ok": true,
+ "smoke": {
+  "opening": "I am a digital assistant calling from Freya Bank, and we are recording this call. Am I speaking with Mr Morgan?",
+  "first_turn_s": 13.1,
+  "second_reply": "Before I continue, I need to ask you two security questions. Could you tell me your date of birth?",
+  "second_turn_s": 4.0,
+  "call_id": "5479b0b6-d8e4-41ff-a1f5-182116e47a75",
+  "decide_step_ok": true,
+  "decide_error": null
+ },
+ "export": "submission/candidate-3/brief-a-brief-b.workflow.json",
+ "export_sha256": "e9ba6e9d3546f0ec040230b48b6957b85f7dd974e31435753dc810b2c6ee6d1f"
+}

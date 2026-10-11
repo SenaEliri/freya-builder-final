@@ -64,7 +64,7 @@ def main(argv=None):
     if failed:
         sys.exit("self-tests failed: %s" % failed)
     name = pathlib.Path(a.policy).name.replace(".policy.json", "")
-    out = pathlib.Path(a.out)
+    out = pathlib.Path(a.out).resolve()  # relative --out paths too (manifest paths are relative to the repo)
     out.mkdir(parents=True, exist_ok=True)
     man = {"policy": str(pathlib.Path(a.policy).resolve().relative_to(ROOT)), "policy_sha256": sha256(a.policy),
            "openapi_sha256": sha256(a.openapi), "source_commit": commit(), "runtime_hash": bundle.runtime_hash(),

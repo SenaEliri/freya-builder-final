@@ -1,0 +1,51 @@
+{
+ "agent_id": "25183cdb-43aa-4c5e-b427-a0680b1ca71e",
+ "name": "cases 17:57:33",
+ "variables_by_persona": {
+  "2703d125-6270-4775-9365-e0a1147d3804": {
+   "customer_id": "c_78f6af1c-5be",
+   "first_name": "Lena",
+   "last_name": "Hoffmann",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "7c647dd0-b014-453f-8dbc-d9c8ca9c55c6": {
+   "customer_id": "c_74206b73-417",
+   "first_name": "Tomas",
+   "last_name": "Novak",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "e3e50045-6613-48a8-b713-9d16c93cede2": {
+   "customer_id": "c_4148e605-270",
+   "first_name": "Priya",
+   "last_name": "Nair",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "8c6ebcfd-7d25-4cf4-99b1-b05806cca132": {
+   "customer_id": "c_35f778fa-46f",
+   "first_name": "Samuel",
+   "last_name": "Ortiz",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "499e40d1-e383-4cd9-8110-997620451720": {
+   "customer_id": "c_940fd5b5-f13",
+   "first_name": "Grace",
+   "last_name": "Lin",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  }
+ },
+ "argv": [
+  "25183cdb-43aa-4c5e-b427-a0680b1ca71e",
+  "--brief",
+  "A",
+  "--only",
+  "PUB-04,PUB-05,PUB-06,PUB-07,PUB-10",
+  "--out",
+  "results/c3/c3A-plain.json"
+ ],
+ "simulation_id": "3e50e5b6-4559-4573-a771-1fb3cfeb036a"
+}
