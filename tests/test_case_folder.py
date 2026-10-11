@@ -132,14 +132,16 @@ def test_start_service_needs_only_known_values(tmp_path):
 
 def test_post_hook_adds_date_facts():
     hook = emit._const("NOW_VAR", "now") + emit._const("TOOL", "bal") + emit.POST_HOOK
-    result = {"status": "success", "header": {"x": 1}, "data": {"data": {"due": "15.10.2026", "cut": "05.10.2026", "today": "12.10.2026", "min": 34.1, "debt": 85.2, "round": 12000.0},
+    result = {"status": "success", "header": {"x": 1}, "data": {"data": {"due": "15.10.2026", "cut": "05.10.2026", "today": "12.10.2026", "min": 34.1, "debt": 85.2, "round": 12000.0, "credit": -1896.0, "issued": ""},
                                                                  "result": {"code": "1", "details": {"guid": "g"}}}}
     v = {"now": "2026-10-12T10:30:00+03:00", "bal_args.cardNumber": "54**12"}
     exec(hook, {"result": result, "vars": v})
     notes = result["data"]["assistant_notes"]["dates"]
     assert v["mem_bal"].startswith("answered for cardNumber=54**12:") and "data.due = 15.10.2026 (is in 3 day(s), not reached yet)" in v["mem_bal"]
     assert "result" not in v["mem_bal"].split(":", 1)[1] and "{{" not in v["mem_bal"]
-    amounts = result["data"]["assistant_notes"]["amounts_with_decimals"]
+    amounts = result["data"]["assistant_notes"]["values_to_handle_with_care"]
+    assert "credit for the caller" in amounts["data.credit"] and amounts["data.issued"].startswith("empty")
+    assert "data.credit = -1896.0 (below zero" in v["mem_bal"] and "data.issued =  (empty" in v["mem_bal"]
     assert amounts["data.min"].startswith("34.10 exactly: whole part 34, then 10 hundredths") and "data.round" not in amounts
     assert "data.min = 34.1 (34.10 exactly" in v["mem_bal"]
     assert "header" not in result and "details" not in result["data"]["result"]
