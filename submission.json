@@ -1,12 +1,16 @@
 {
-  "team": "FILL IN: team name",
+  "team": "Tenacious",
   "members": [
     {
-      "name": "FILL IN",
-      "email": "FILL IN"
+      "name": "Sena Eliri",
+      "email": "senaeliri@gmail.com"
+    },
+    {
+      "name": "Yaşar Kaan Can",
+      "email": "yasarkaancan@hotmail.com"
     }
   ],
-  "repo": "https://github.com/SenaEliri/freya-builder-final",
+  "repo": "https://github.com/yasarkaancan/freya-builder-final",
   "commit": "e1c25ba98360c1c07980d5f7d2eeefa76e8010a4",
   "run_command": "python3 builder/build.py {case_folder} --mock-url https://freya-bank-mock.yasarkaancan.workers.dev --slot rb-final5 --out submission/final5",
   "workflow": "submission/final5/build-the-builder-final-case.workflow.json",
