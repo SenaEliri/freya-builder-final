@@ -93,6 +93,9 @@ def main(argv=None):
                version=saved.get("version"), smoke_ok=ok, smoke=info, export=str(path.relative_to(ROOT)),
                export_sha256=sha256(path))
     (out / ("%s.manifest.json" % name)).write_text(json.dumps(man, indent=1))
+    with open(out / "deploys.jsonl", "a") as f:  # every published version, in order (the manifest keeps the last)
+        f.write(json.dumps({k: man[k] for k in ("built_at", "slot", "workflow_id", "agent_id", "version", "source_commit",
+                                                "runtime_hash", "export_sha256", "smoke_ok")}) + "\n")
     print(json.dumps(man, indent=1))
     return 0 if ok else 1
 
