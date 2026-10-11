@@ -1,0 +1,39 @@
+{
+ "agent_id": "02348dd0-989b-4359-bdbe-7c925c22477f",
+ "name": "cases 15:42:26",
+ "variables_by_persona": {
+  "f4f9d52d-94bb-4343-85fb-7b78d373afa4": {
+   "customer_id": "c_ead70fa2-a98",
+   "first_name": "Sofia",
+   "last_name": "Almeida",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  },
+  "b434a8b7-1534-4d91-8cee-35e22ac8036d": {
+   "customer_id": "c_0d040d13-96b",
+   "first_name": "Marcus",
+   "last_name": "Bell",
+   "title": "Mr",
+   "now": "2026-10-14T11:00"
+  },
+  "fc9f9371-de60-45bd-a732-35ecdb2d072a": {
+   "customer_id": "c_e2fa7a4b-1a5",
+   "first_name": "Elena",
+   "last_name": "Rossi",
+   "title": "Ms",
+   "now": "2026-10-14T11:00"
+  }
+ },
+ "argv": [
+  "02348dd0-989b-4359-bdbe-7c925c22477f",
+  "--brief",
+  "B",
+  "--only",
+  "PUB-11,PUB-12,PUB-13",
+  "--style",
+  "talkative",
+  "--out",
+  "results/c2v5/focusB-talkative.json"
+ ],
+ "simulation_id": "8e9e178b-c72a-4a73-a2f7-de5b2ca8cbbb"
+}

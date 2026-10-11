@@ -91,7 +91,7 @@ python3 -m pytest -q tests        # 272 passed (170 from candidate 1 + 102 new)
 
 ## Live tests (Freya staging, real extraction and execution)
 
-**Status at this commit: live validation in progress (the frozen 3x suites have not run yet).** Every run below was
+**Status at this commit (checkpoint, 11 Oct ~13:15 UTC): live validation in progress.** The candidate to freeze is **v5** (commit `9279ea0`, runtime `a6ca24d742b1`; A agent version 5, B agent version 4). v5 focused so far: B all six speech styles 17/18 (the one failure: the simulated talkative customer never gave the phone digits in ~15 turns), A in_words 5/5; the remaining A styles and the frozen 3x suites follow. Results of v1-v4 below do not validate v5 (each version changed the runtime); they are the evidence for the fixes. Every run below was
 made with `tools/run_cases_retry.py` (the kit's runner, unmodified, plus GET retries), one simulation at a time in the
 workspace; each failure was read in the call's own event log, not inferred.
 
