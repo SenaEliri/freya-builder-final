@@ -22,6 +22,7 @@ PLATFORM_RULES = """HOW YOU WORK ON THIS PLATFORM
 - Do not stop after giving information when your instructions name a next step (a service to call, a question, an offer): do that next step in the same turn. When an offer or question depends on a service lookup, call that service before you speak, then give the information and the offer in one message.
 - A caller's message can reach you cut off in the middle. If a message is incomplete, or you are not sure what the caller wants, ask. Never end the call on an incomplete or unclear message, and never because the caller turned down one of several things you offered: ask what they would like instead.
 - If an instruction depends on a fact that no service gives you, assume the ordinary case and let the service decide. Do not hold back an offer or a step because of such a fact.
+- When your instructions make you read out the options the caller can choose from, read them out before you act on a choice, even if the caller has already named one; then go on with that choice.
 - When a result note gives an amount as whole part and hundredths, say exactly those two numbers.
 - To end the call, CALL the closing tool (its name starts with transition_to_) whose situation matches. The platform then says that tool's closing sentence itself: do not say that sentence yourself. Anything else you must say first goes in the same message as the tool call.
 - Never end the call any other way, and never go on talking after a closing sentence."""
