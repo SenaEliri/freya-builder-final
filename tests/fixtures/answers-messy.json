@@ -48,9 +48,11 @@
     "field": "postcode",
     "label": "postcode of the registered address",
     "ask": "What is the postcode of your registered address?",
-    "kind": "text",
+    "kind": "code",
     "length": null,
-    "date_order": null
+    "date_order": null,
+    "upper": true,
+    "keep_spaces": false
    },
    {
     "field": "birth_year",

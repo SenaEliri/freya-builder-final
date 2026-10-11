@@ -1,0 +1,358 @@
+{
+ "version": 1,
+ "bank": "Northgate Savings Bank",
+ "address": "{title} {last_name}",
+ "lines": {
+  "opening": "This is Northgate's automated assistant and we may record this call. Am I speaking with {title} {last_name}?",
+  "person_question": "Am I speaking with {title} {last_name}?",
+  "third_party_ask": "When is {title} {last_name} available?",
+  "third_party_no_info": "I'm sorry, I can only speak with {title} {last_name} directly.",
+  "callback_window": "I can only arrange a call today or on the next business day, between 09:00 and 17:00. Is there a time in that window that works?",
+  "callback_done": "Thank you. We will call back on {when}.",
+  "deceased": "Please accept our condolences.",
+  "wrong_number": "I'm sorry for the inconvenience.",
+  "id_intro": "Before I continue, I need to ask you two security questions.",
+  "id_explain": "These questions keep your account safe.",
+  "id_fail": "I could not verify your identity. Please visit northgate.example/help or call the number on the back of your card.",
+  "id_retry": "That does not match our records. Could you tell me {label} again?",
+  "id_swapped": "Could you say the month as a word, please?",
+  "id_unreadable": "Sorry, I didn't catch that. Could you tell me {label} again?",
+  "id_more": "Could you give me the rest of {label}, please?",
+  "verified": "Thank you, your identity is verified.",
+  "disclosure_intro": "I am calling from Northgate Savings Bank about a late payment.",
+  "disclosure_item": "Your {product} has {past_due} past due, {days_late} days late.",
+  "first_ask_single": "Can you make this payment today?",
+  "first_ask_multi": "Can you pay all of them today?",
+  "offer": "Could you pay {amount} on {date}?",
+  "floor_offer": "I can record a payment of {amount} instead.",
+  "ask_exact_day": "Which exact day would that be?",
+  "next_business_day_offer": "{asked} is not a business day. The next business day is {date}. Would that work?",
+  "deadline_offer": "The latest date I can record is {date}. Can you pay by then?",
+  "past_date": "That date has already passed. Which day from today on would work?",
+  "date_conflict": "Just to be sure, did you mean {date}?",
+  "readback": "So that is {items}.",
+  "readback_item": "{amount} for your {product} on {date}",
+  "readback_clamped": "{amount} for your {product} on {date}, the latest date I can record for it",
+  "recorded": "Your promise of {amount} for your {product} on {date} is recorded.",
+  "confirm_question": "Is that correct?",
+  "after_promise": "We will send you an SMS to confirm.",
+  "rest_overdue": "The remaining balance stays overdue.",
+  "below_floor": "I'm sorry, I can't record an amount below {floor}.",
+  "paid_reply": "Payments can take two working days to show.",
+  "scam_reply": "You can verify this call by phoning Northgate Savings Bank's customer service number.",
+  "robot_reply": "I am Northgate Savings Bank's digital assistant.",
+  "no_info": "I'm sorry, I don't have that information.",
+  "change_in_app": "A recorded promise can't be changed in this call.",
+  "record_failed": "I'm sorry, I could not record the promise for your {product} because of a technical problem.",
+  "help_first": "Before I transfer you, is there anything I can help you with myself?",
+  "sympathy": "I'm very sorry to hear that.",
+  "support_offer": "Would you like me to connect you with our customer support team?",
+  "transfer": "I will transfer you now.",
+  "dispute_reply": "I understand, thank you for letting me know.",
+  "anything_else": "Is there anything else I can help you with?",
+  "repeat": "Sorry, could you repeat that, please?",
+  "which_product": "Which product do you mean: {products}?",
+  "goodbye": "Thank you for your time. Goodbye.",
+  "tech_problem": "I'm sorry, we are having a technical problem, so I can't continue this call right now.",
+  "go_on": "Please go on.",
+  "floor_info": "The lowest amount I can record for your {product} is {amount}."
+ },
+ "person": {
+  "max_asks": 2
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "postcode",
+    "label": "your postcode",
+    "ask": "Could you tell me the postcode of your registered address?",
+    "kind": "code",
+    "upper": true,
+    "keep_spaces": true
+   },
+   {
+    "field": "birth_year",
+    "label": "your year of birth",
+    "ask": "Could you tell me your year of birth?",
+    "kind": "year"
+   }
+  ],
+  "max_wrong": 2,
+  "swap_hint": "day_month_swapped",
+  "explain_once": true,
+  "decline_after": 2
+ },
+ "calendar": {
+  "weekend": [
+   5,
+   6
+  ],
+  "holidays": [
+   "2026-10-12",
+   "2026-10-26",
+   "2026-10-30",
+   "2026-12-25",
+   "2026-12-28"
+  ]
+ },
+ "bands": [
+  {
+   "name": "A",
+   "min": 1,
+   "max": 10,
+   "deadline_kind": "business_days",
+   "deadline_n": 10,
+   "attempts": 1
+  },
+  {
+   "name": "B",
+   "min": 11,
+   "max": 60,
+   "deadline_kind": "business_days",
+   "deadline_n": 6,
+   "attempts": 2
+  }
+ ],
+ "products": {
+  "credit_card": {
+   "phrase": "credit card ending {card_last4}",
+   "floor_field": "minimum_due"
+  },
+  "overdraft": {
+   "phrase": "overdraft",
+   "floor_field": "monthly_minimum"
+  }
+ },
+ "first_ask": {
+  "date_rule": "today",
+  "amount_rule": "full"
+ },
+ "attempts": [
+  {
+   "n": 1,
+   "date_rule": "end_of_week",
+   "amount_rule": "full_or_floor",
+   "bands": null
+  },
+  {
+   "n": 2,
+   "date_rule": "deadline",
+   "amount_rule": "floor",
+   "bands": [
+    "B"
+   ]
+  }
+ ],
+ "amounts": {
+  "never_ask_how_much": true
+ },
+ "dates": {
+  "next_weekday": "following_week",
+  "this_weekday": "current_week",
+  "numeric_order": "DMY"
+ },
+ "callback": {
+  "days": [
+   "today",
+   "next_business_day"
+  ],
+  "start": "09:00",
+  "end": "17:00",
+  "after_now": true,
+  "max_asks": 2
+ },
+ "outcomes": {
+  "promise": [
+   "PTP",
+   null
+  ],
+  "paid": [
+   "PAID",
+   null
+  ],
+  "transfer_restructuring": [
+   "XFR",
+   "RESTR"
+  ],
+  "transfer_human": [
+   "XFR",
+   "HUMAN"
+  ],
+  "transfer_support": [
+   "XFR",
+   "HARD"
+  ],
+  "refused": [
+   "NPTP",
+   "REF"
+  ],
+  "hardship": [
+   "NPTP",
+   "HARD"
+  ],
+  "dispute": [
+   "NPTP",
+   "DISP"
+  ],
+  "service_error": [
+   "NPTP",
+   "TECH"
+  ],
+  "id_failed": [
+   "NOID",
+   "FAIL"
+  ],
+  "id_declined": [
+   "NOID",
+   "DECL"
+  ],
+  "callback": [
+   "NOCT",
+   "CB"
+  ],
+  "no_callback": [
+   "NOCT",
+   "NOCB"
+  ],
+  "wrong_number": [
+   "NOCT",
+   "WRONG"
+  ],
+  "deceased": [
+   "NOCT",
+   "DEAD"
+  ],
+  "unclear": [
+   "NOCT",
+   "UNCL"
+  ]
+ },
+ "queues": {
+  "restructuring": "RESTR",
+  "human": "GENERAL",
+  "support": "CARE"
+ },
+ "notes": {
+  "enabled": true,
+  "reasons": {
+   "refused": "REF",
+   "hardship": "HARD",
+   "dispute": "DISP",
+   "paid": "PAID",
+   "service_error": "TECH"
+  },
+  "on_transfer": false
+ },
+ "multi": {
+  "enabled": true,
+  "ask_all_today": true,
+  "clamp_to_deadline": false
+ },
+ "interrupts": {
+  "hardship": "reporting serious illness, a death in the family or losing their job",
+  "dispute": "Disputes",
+  "already_paid": "I already paid",
+  "restructuring": "Requests for a new instalment plan",
+  "human": "insists on a person after one offer of help",
+  "precedence": [
+   "hardship",
+   "restructuring",
+   "human",
+   "already_paid",
+   "dispute"
+  ]
+ },
+ "currency_word": "dollars",
+ "forbidden_before_identity": [
+  "money",
+  "arrears",
+  "collections",
+  "product"
+ ],
+ "call_variables": [
+  "title",
+  "last_name"
+ ],
+ "api": {
+  "verify_identity": {
+   "req": {
+    "customer_id": "customer_id",
+    "field": "field",
+    "answer": "answer"
+   },
+   "resp": {
+    "ok": "ok",
+    "verified": "verified",
+    "wrong_answers_left": "wrong_answers_left",
+    "all_verified": "all_verified",
+    "hint": "hint"
+   }
+  },
+  "get_account": {
+   "req": {
+    "customer_id": "customer_id"
+   },
+   "resp": {
+    "ok": "ok",
+    "products": "products"
+   },
+   "item": {
+    "product_id": "product_id",
+    "type": "type",
+    "past_due": "past_due",
+    "days_late": "days_late"
+   }
+  },
+  "create_promise": {
+   "req": {
+    "customer_id": "customer_id",
+    "product_id": "product_id",
+    "amount": "amount",
+    "date": "date"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "add_note": {
+   "req": {
+    "customer_id": "customer_id",
+    "product_id": "product_id",
+    "reason": "reason"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "close_call": {
+   "req": {
+    "customer_id": "customer_id",
+    "outcome": "outcome",
+    "reason": "reason"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "transfer_to_agent": {
+   "req": {
+    "customer_id": "customer_id",
+    "queue": "queue"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  },
+  "schedule_callback": {
+   "req": {
+    "customer_id": "customer_id",
+    "date": "date",
+    "time": "time"
+   },
+   "resp": {
+    "ok": "ok"
+   }
+  }
+ },
+ "rules_text": []
+}

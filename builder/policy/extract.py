@@ -8,6 +8,7 @@ import concurrent.futures
 import copy
 import json
 import re
+import time
 
 from builder import llm_freya
 from builder.policy import schema
@@ -138,7 +139,8 @@ def q_bands():
         '"attempts": [{"n": <1-based number of the extra offer>, "date_rule": "<rule>", "amount_rule": "<rule>", '
         '"bands": null or [band names the extra offer applies to]}] (ONLY the extra offers made after a refusal, in order; '
         'never include the first request)}. Date rules: today | tomorrow | end_of_week (last business day of this week, or of next '
-        'week if today is that day) | deadline (the band\'s latest allowed date) | next_business_day. Amount rules: full | floor '
+        'week if today is that day) | deadline (the band\'s latest allowed date) | next_business_day | business_day_<N> (the N-th '
+        'business day after today) | calendar_day_<N> (the N-th calendar day after today). Amount rules: full | floor '
         '(the lowest acceptable amount) | full_or_floor (the full amount, or the floor if the customer already said the full amount '
         'is too much).')
 
@@ -342,7 +344,7 @@ def section_errors(name, ans, toolspec):
                 if not isinstance(b.get(k), int):
                     e.append("band %s.%s must be an integer" % (b.get("name"), k))
         for a in ans.get("attempts") or []:
-            if a.get("date_rule") not in schema.DATE_RULES:
+            if not schema.date_rule_ok(a.get("date_rule")):
                 e.append("attempt date_rule %r invalid" % a.get("date_rule"))
             if a.get("amount_rule") not in schema.AMOUNT_RULES:
                 e.append("attempt amount_rule %r invalid" % a.get("amount_rule"))
@@ -385,25 +387,71 @@ def section_errors(name, ans, toolspec):
     return e
 
 
-def ask_section(name, question, context, toolspec, trace, retries=1):
-    ans, raw = llm_freya.ask(context, question, "policy section %s" % name, trace=trace)
+CRITICAL = ("identity", "bands", "outcomes", "calendar", "amounts")
+
+
+def ask_section(name, question, context, toolspec, trace, retries=None, deadline=None):
+    """Ask one section; re-ask with the validation errors fed back while time allows. Keeps the best answer."""
+    retries = (2 if name in CRITICAL else 1) if retries is None else retries
+
+    def budget():
+        if deadline is None:
+            return 240
+        return max(0, min(240, deadline - time.time()))
+    if budget() < 15:
+        return name, {}, ["no time left for this section"]
+    ans, raw = llm_freya.ask(context, question, "policy section %s" % name, trace=trace, timeout_s=budget())
     errs = section_errors(name, ans, toolspec)
+    best = (ans if isinstance(ans, dict) else {}, errs)
     tries = 0
-    while errs and tries < retries:
+    while errs and tries < retries and budget() >= 30:
         tries += 1
         q2 = question + "\nYour previous answer had these problems, fix them: " + "; ".join(errs[:8]) + \
             "\nPrevious answer: " + (raw or "")[:1500]
-        ans, raw = llm_freya.ask(context, q2, "policy section %s (retry %d)" % (name, tries), trace=trace)
+        ans, raw = llm_freya.ask(context, q2, "policy section %s (retry %d)" % (name, tries), trace=trace,
+                                 timeout_s=budget())
         errs = section_errors(name, ans, toolspec)
-    return name, ans if isinstance(ans, dict) else {}, errs
+        if isinstance(ans, dict) and (not best[0] or len(errs) < len(best[1])):
+            best = (ans, errs)
+    return name, best[0], best[1]
 
 
-def extract(brief_texts, toolspec, trace=None, parallel=4):
+ERROR_SECTION = (("identity", "identity"), ("calendar", "calendar"), ("bands", "bands"), ("attempts", "bands"),
+                 ("first_ask", "bands"), ("products", "amounts"), ("tool API product type", "amounts"),
+                 ("outcomes", "outcomes"), ("queues", "interrupts"), ("notes", "multi"), ("callback", "third_party"),
+                 ("lines", "sentences"))
+
+
+def repair(brief_texts, toolspec, report, errors, trace=None, deadline=None):
+    """One repair round: re-ask the sections the policy errors point at, with the errors, and re-assemble."""
+    sections = []
+    for err in errors:
+        for prefix, sec in ERROR_SECTION:
+            if err.startswith(prefix) and sec not in sections:
+                sections.append(sec)
+    answers = dict(report["answers"])
+    problems = {}
+    context = build_context(brief_texts, toolspec)
+    qs = questions(toolspec)
+    for sec in sections:
+        q = qs[sec] + "\nThe policy built from your earlier answer failed these checks, fix them: " + \
+            "; ".join(e for e in errors[:10])
+        n, ans, errs = ask_section(sec, q, context, toolspec, trace, 1, deadline)
+        if ans:
+            answers[sec] = ans
+        if errs:
+            problems[sec] = errs
+    policy = assemble(answers, brief_texts, toolspec, problems)
+    errs = schema.validate(policy, toolspec)
+    return policy, {"section_problems": problems, "policy_errors": errs, "answers": answers, "repaired": sections}
+
+
+def extract(brief_texts, toolspec, trace=None, parallel=4, deadline=None):
     context = build_context(brief_texts, toolspec)
     qs = questions(toolspec)
     answers, problems = {}, {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as ex:
-        futs = [ex.submit(ask_section, n, qs[n], context, toolspec, trace) for n in SECTIONS]
+        futs = [ex.submit(ask_section, n, qs[n], context, toolspec, trace, None, deadline) for n in SECTIONS]
         for f in concurrent.futures.as_completed(futs):
             n, ans, errs = f.result()
             answers[n] = ans
@@ -437,12 +485,52 @@ def avoid_recorded(line):
     return t
 
 
+OUTCOME_FALLBACK = {
+    "transfer_support": ["transfer_human", "transfer_restructuring"],
+    "transfer_human": ["transfer_support", "transfer_restructuring"],
+    "transfer_restructuring": ["transfer_human", "transfer_support"],
+    "hardship": ["refused"], "dispute": ["refused"], "service_error": ["refused"],
+    "id_declined": ["id_failed"], "id_failed": ["id_declined"],
+    "callback": ["no_callback", "unclear"], "no_callback": ["unclear", "callback"],
+    "wrong_number": ["unclear", "no_callback"], "deceased": ["unclear", "no_callback"],
+    "unclear": ["no_callback", "wrong_number"], "paid": ["refused"], "refused": ["hardship", "dispute"],
+}
+
+
+def fill_outcomes(outcomes, en, problems):
+    """Every situation needs a close_call mapping; one the brief does not name borrows the nearest one."""
+    for _ in range(3):
+        for sit in schema.SITUATIONS:
+            if sit in outcomes:
+                continue
+            for alt in OUTCOME_FALLBACK.get(sit, []):
+                if alt in outcomes:
+                    outcomes[sit] = list(outcomes[alt])
+                    problems.setdefault("outcomes", []).append("%s had no mapping; using %s's" % (sit, alt))
+                    break
+    for sit in schema.SITUATIONS:
+        if sit not in outcomes and en["outcomes"]:
+            outcomes[sit] = [en["outcomes"][-1], None]
+            problems.setdefault("outcomes", []).append("%s had no mapping; using %s" % (sit, en["outcomes"][-1]))
+
+
+def contiguous_bands(bands, problems):
+    """Bands sorted by days late; a gap between two bands is closed by extending the earlier one."""
+    bs = sorted(bands, key=lambda b: b["min"])
+    for a, b in zip(bs, bs[1:]):
+        if b["min"] != a["max"] + 1:
+            problems.setdefault("bands", []).append("bands %s and %s were not contiguous (%d-%d, %d-%d); closed the gap"
+                                                    % (a["name"], b["name"], a["min"], a["max"], b["min"], b["max"]))
+            a["max"] = b["min"] - 1
+    return bs
+
+
 def normalize_attempts(raw, first_ask, bands, problems):
     """Keep only the extra offers made after a refusal, numbered 1..n in order.
 
     An entry identical to the first request is not an extra offer (models sometimes list the first request as
     attempt 1); it is dropped and the band counts are capped at the number of offers that apply to each band."""
-    items = [dict(a) for a in raw or [] if isinstance(a, dict) and a.get("date_rule") in schema.DATE_RULES
+    items = [dict(a) for a in raw or [] if isinstance(a, dict) and schema.date_rule_ok(a.get("date_rule"))
              and a.get("amount_rule") in schema.AMOUNT_RULES]
     for a in items:
         try:
@@ -528,13 +616,15 @@ def assemble(A, brief_texts, toolspec, problems):
              and b.get("deadline_kind") in ("business_days", "calendar_days")]
     for b in bands:
         b["name"] = str(b.get("name") or "band%d" % b["min"])
+    bands = contiguous_bands(bands, problems)
     fa = bands_ans.get("first_ask") if isinstance(bands_ans.get("first_ask"), dict) else {}
-    first_ask = {"date_rule": fa.get("date_rule") if fa.get("date_rule") in schema.DATE_RULES else "today",
+    first_ask = {"date_rule": fa.get("date_rule") if schema.date_rule_ok(fa.get("date_rule")) else "today",
                  "amount_rule": fa.get("amount_rule") if fa.get("amount_rule") in ("full", "floor") else "full"}
     attempts = normalize_attempts(bands_ans.get("attempts"), first_ask, bands, problems)
     am = A.get("amounts") or {}
     products = {}
-    for t in en["product_types"]:
+    # product types come from the tool API's enum; an API without one takes the types the brief names
+    for t in en["product_types"] or [k for k in (am.get("products") or {}) if re.match(r"^[\w-]+$", str(k))]:
         p = (am.get("products") or {}).get(t) or {}
         ff = p.get("floor_field") if p.get("floor_field") in en["product_fields"] else None
         phrase = _s(p.get("phrase")) or t.replace("_", " ")
@@ -546,6 +636,7 @@ def assemble(A, brief_texts, toolspec, problems):
         v = oc.get(s)
         if isinstance(v, list) and len(v) == 2 and v[0] in en["outcomes"]:
             outcomes[s] = [v[0], _s(v[1]) if isinstance(v[1], str) else None]
+    fill_outcomes(outcomes, en, problems)
     tp = A.get("third_party") or {}
     cb_days = [d for d in (tp.get("callback_days") or ["today", "next_business_day"]) if d in ("today", "tomorrow", "next_business_day")]
     cb = {"days": cb_days or ["today", "next_business_day"],
@@ -563,7 +654,9 @@ def assemble(A, brief_texts, toolspec, problems):
         if p not in prec:
             prec.append(p)
     interrupts = {"hardship": _s(it.get("hardship")), "dispute": _s(it.get("dispute")), "already_paid": _s(it.get("already_paid")),
-                  "restructuring": _s(it.get("restructuring")), "human": _s(it.get("human")), "precedence": prec}
+                  "restructuring": _s(it.get("restructuring")), "human": _s(it.get("human")), "precedence": prec,
+                  "refuse_talk_times": min(5, max(1, int(it.get("refuse_talk_times") or 2)))
+                  if str(it.get("refuse_talk_times") or "2").isdigit() else 2}
     mu = A.get("multi") or {}
     notes_on = bool(mu.get("notes_enabled"))
     nr = dict((k, v) for k, v in (mu.get("note_reasons") or {}).items() if v in en["note_reasons"]) if notes_on else {}
@@ -591,6 +684,7 @@ def assemble(A, brief_texts, toolspec, problems):
         "currency_word": _s(am.get("currency_word")) or "dollars",
         "forbidden_before_identity": forb[:20],
         "call_variables": names,
+        "api": toolspec.get("api") or {},
         "rules_text": [],
     }
     return policy

@@ -329,6 +329,12 @@ def date_for_rule(rule, today, deadline, cal):
         if x is None or x <= today:
             x = last_business_of_week(today + datetime.timedelta(days=7), cal)
         return x
+    m = re.match(r"^(business|calendar)_day_(\d{1,2})$", str(rule or ""))
+    if m:
+        n = int(m.group(2))
+        if m.group(1) == "business":
+            return add_business(today, n, cal)
+        return next_business_on_or_after(today + datetime.timedelta(days=n), cal)
     return deadline
 
 
@@ -921,8 +927,9 @@ def load_products(V, P, today):
                 continue
     if lst is None:
         idx = {}
+        pkey = re.escape(api_resp(P, "get_account", "products"))
         for k in list(V.keys()):
-            m = re.match(r"^account_response\.data\.products\.(\d+)\.(\w+)$", str(k))
+            m = re.match(r"^account_r?_?response\.data\." + pkey + r"\.(\d+)\.(\w+)$", str(k))
             if m:
                 idx.setdefault(int(m.group(1)), {})[m.group(2)] = V[k]
         if idx:
@@ -933,12 +940,12 @@ def load_products(V, P, today):
     for i, it in enumerate(lst):
         if not isinstance(it, dict):
             continue
-        typ = str(it.get("type") or "")
+        typ = str(it.get(api_item(P, "type")) or "")
         spec = (P.get("products") or {}).get(typ) or {}
         floor_field = spec.get("floor_field")
         try:
-            past_due = float(it.get("past_due"))
-            days_late = int(float(it.get("days_late")))
+            past_due = float(it.get(api_item(P, "past_due")))
+            days_late = int(float(it.get(api_item(P, "days_late"))))
         except Exception:
             continue
         floor = None
@@ -958,7 +965,7 @@ def load_products(V, P, today):
             dl = add_business(today, int(band.get("deadline_n", 0)), P["calendar"])
         mp = dict((k, v) for k, v in it.items() if isinstance(v, (str, int, float)))
         phrase = fill(spec.get("phrase") or typ.replace("_", " "), mp)
-        prods.append({"id": str(it.get("product_id") or ("p%d" % (i + 1))), "type": typ, "phrase": phrase,
+        prods.append({"id": str(it.get(api_item(P, "product_id")) or ("p%d" % (i + 1))), "type": typ, "phrase": phrase,
                       "past_due": past_due, "floor": floor if floor is not None else past_due,
                       "days_late": days_late, "band": band.get("name", ""), "deadline": d_iso(dl),
                       "attempts_total": int(band.get("attempts", 1)), "attempts_used": 0,
@@ -967,8 +974,27 @@ def load_products(V, P, today):
     return prods
 
 
-def today_of(V):
-    d = d_from(S(V, "now"))
+def api_resp(P, tool, role):
+    return (((P.get("api") or {}).get(tool) or {}).get("resp") or {}).get(role, role)
+
+
+def api_item(P, role):
+    return (((P.get("api") or {}).get("get_account") or {}).get("item") or {}).get(role, role)
+
+
+def now_string(V, P=None):
+    """The call's current date-time variable: 'now' in the public briefs, else a call variable named like it."""
+    names = ["now"] + [n for n in ((P or {}).get("call_variables") or [])
+                       if re.search(r"now|today|date|time", str(n)) and n != "now"]
+    for k in names:
+        v = S(V, k)
+        if d_from(v):
+            return v
+    return ""
+
+
+def today_of(V, P=None):
+    d = d_from(now_string(V, P))
     return d or datetime.date.today()
 
 
@@ -1009,7 +1035,7 @@ def run(V, P):
     st["turn"] = st.get("turn", 0) + 1
     out = Out()
     inp = read_inputs(V)
-    today = today_of(V)
+    today = today_of(V, P)
     V["say"] = ""
     if st.get("fragment"):
         inp = merge_fragment(st, inp)
@@ -1057,6 +1083,17 @@ def finish(st, out, V, P):
                 text = " ".join(pre + [text])
         if not text and out.route in ("say", "confirm"):
             text = P["lines"]["repeat"]
+    if out.route not in ("say", "confirm") and text:
+        # lines decided this turn must still be heard when the turn ends in a tool chain or an ending
+        if out.route == "verify":
+            for k in ("say_v_next", "say_v_wrong", "say_v_swapped", "say_v_unreadable", "say_v_done", "say_v_tech"):
+                if out.extra.get(k):
+                    out.extra[k] = text + " " + out.extra[k]
+        else:
+            for k in ("farewell", "farewell_af"):
+                fw = S(V, k)
+                if (k == "farewell" or fw) and text not in fw:
+                    V[k] = (text + " " + fw).strip()
     V["say"] = text
     V["route"] = out.route
     for k, v in out.extra.items():
@@ -1123,7 +1160,7 @@ def step_person(st, inp, V, P, out, pm):
         return handle_human(st, inp, V, P, out, pm, verified=False)
     if intent in ("refuse_talk", "goodbye") and reply != "yes":
         st["refusals"] = st.get("refusals", 0) + 1
-        if st["refusals"] >= 2:
+        if st["refusals"] >= int((P.get("identity") or {}).get("decline_after", 2) or 2):
             return end_call(st, out, V, P, "id_declined", [])
         out.say.append(L(P, "id_explain", pm))
         out.say.append(L(P, "person_question", pm))
@@ -1206,7 +1243,7 @@ def parse_callback(text, today, V, P):
         day = d_from(dres["date"])
     if tm is None and day is None:
         return {"status": "none"}
-    now_s = S(V, "now")
+    now_s = now_string(V, P)
     now_t = now_s[11:16] if len(now_s) >= 16 else "00:00"
     if tm is None:
         return {"status": "outside" if day and not allowed_cb_day(day, today, P) else "none"}
@@ -1304,7 +1341,7 @@ def step_identity(st, inp, V, P, out, pm):
     # results of the verify call made at the end of the previous turn
     absorb_verify(st, V, P)
     if st["phase"] != "identity":
-        return step(st, inp, V, P, out, today_of(V))
+        return step(st, inp, V, P, out, today_of(V, P))
     q = idq[min(ids["q"], len(idq) - 1)]
     if topic == "human" or intent == "wants_human":
         return handle_human(st, inp, V, P, out, pm, verified=False)
@@ -1321,7 +1358,8 @@ def step_identity(st, inp, V, P, out, pm):
             out.say.append(q["ask"])
             return
         ids["declines"] = ids.get("declines", 0) + 1
-        if ids["declines"] >= 2 or ids.get("explained") and ids["declines"] >= 1 and topic != "why_needed":
+        limit = max(1, int((P.get("identity") or {}).get("decline_after", 2) or 2))
+        if ids["declines"] >= limit or ids.get("explained") and ids["declines"] >= limit - 1 and topic != "why_needed":
             return end_call(st, out, V, P, "id_declined", [])
         ids["explained"] = True
         out.say.append(L(P, "id_explain", pm))
@@ -1386,16 +1424,17 @@ def absorb_verify(st, V, P):
         ids["tech"] = ids.get("tech", 0) + 1
         st["events"].append("verify_tech")
         return
-    if truthy(S(V, "verify_response.data.all_verified")):
+    vk = lambda role: "verify_response.data." + api_resp(P, "verify_identity", role)  # noqa: E731
+    if truthy(S(V, vk("all_verified"))):
         st["phase"] = "verified_wait"
         st["outcome"] = "refused"
         return
-    if truthy(S(V, "verify_response.data.verified")):
+    if truthy(S(V, vk("verified"))):
         ids["q"] = ids.get("q", 0) + 1
         return
-    left = S(V, "verify_response.data.wrong_answers_left")
-    hint = S(V, "verify_response.data.hint")
-    okv = S(V, "verify_response.data.ok")
+    left = S(V, vk("wrong_answers_left"))
+    hint = S(V, vk("hint"))
+    okv = S(V, vk("ok"))
     if hint:
         return
     if okv and not truthy(okv) and not left:
@@ -1860,7 +1899,7 @@ def step_negotiate(st, inp, V, P, out, pm, today):
             return repeat_pending(st, out, V, P, pm, today)
     if intent in ("refuse_talk", "goodbye") and not (inp["pay_date"] or inp["pay_amount"]) and reply != "yes":
         st["refusals"] = st.get("refusals", 0) + 1
-        if st["refusals"] >= 2 or intent == "goodbye":
+        if st["refusals"] >= int((P.get("interrupts") or {}).get("refuse_talk_times", 2) or 2) or intent == "goodbye":
             for p in prods:
                 if p["status"] == "open":
                     p["status"] = "refused"

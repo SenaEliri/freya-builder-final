@@ -64,8 +64,12 @@ def load(path):
     missing = [t for t in TOOL_NAMES if t not in tools]
     if missing:
         raise ValueError("tool API file lacks tools: %s" % ", ".join(missing))
-    return {"title": (spec.get("info") or {}).get("title", ""), "description": (spec.get("info") or {}).get("description", ""),
-            "base_url": base, "tools": tools, "enums": enums({"tools": tools})}
+    from builder.policy import roles
+    api, problems = roles.resolve({"tools": tools})
+    out = {"title": (spec.get("info") or {}).get("title", ""), "description": (spec.get("info") or {}).get("description", ""),
+           "base_url": base, "tools": tools, "api": api, "api_problems": problems}
+    out["enums"] = enums(out)
+    return out
 
 
 def _enum(tools, tool, field):
@@ -74,16 +78,25 @@ def _enum(tools, tool, field):
 
 
 def enums(spec):
+    """Allowed values, read through the role mapping (field names may differ from the public tool API)."""
     t = spec["tools"]
-    products = (t["get_account"]["response"].get("products") or {}).get("items") or {}
+    api = spec.get("api") or {}
+
+    def req(tool, role):
+        return (api.get(tool) or {}).get("req", {}).get(role, role)
+
+    def resp(tool, role):
+        return (api.get(tool) or {}).get("resp", {}).get(role, role)
+    products = (t["get_account"]["response"].get(resp("get_account", "products")) or {}).get("items") or {}
+    type_field = ((api.get("get_account") or {}).get("item") or {}).get("type", "type")
     return {
-        "identity_fields": _enum(t, "verify_identity", "field"),
-        "hints": list(((t["verify_identity"]["response"].get("hint") or {}).get("enum")) or []),
-        "product_types": list(((products.get("type") or {}).get("enum")) or []),
+        "identity_fields": _enum(t, "verify_identity", req("verify_identity", "field")),
+        "hints": list(((t["verify_identity"]["response"].get(resp("verify_identity", "hint")) or {}).get("enum")) or []),
+        "product_types": list(((products.get(type_field) or {}).get("enum")) or []),
         "product_fields": sorted(products.keys()),
-        "note_reasons": _enum(t, "add_note", "reason"),
-        "queues": _enum(t, "transfer_to_agent", "queue"),
-        "outcomes": _enum(t, "close_call", "outcome"),
+        "note_reasons": _enum(t, "add_note", req("add_note", "reason")),
+        "queues": _enum(t, "transfer_to_agent", req("transfer_to_agent", "queue")),
+        "outcomes": _enum(t, "close_call", req("close_call", "outcome")),
     }
 
 

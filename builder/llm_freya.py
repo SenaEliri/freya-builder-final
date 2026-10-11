@@ -70,7 +70,7 @@ def _post(body, timeout_s):
     try:
         r = P.freya.api("POST", "/api/v2/chat/message", body)
         return r, time.time() - t0, None
-    except RuntimeError as e:
+    except Exception as e:  # HTTP errors and socket timeouts alike: the caller decides, nothing escapes
         return None, time.time() - t0, str(e)[:200]
 
 

@@ -18,7 +18,12 @@ import re
 
 
 class Bank(object):
-    def __init__(self, case, faults=None):
+    def __init__(self, case, faults=None, api=None, reasons=None):
+        """api: the role mapping of the tool API under test (builder/policy/roles.py); requests are read and
+        responses written with its field names, the ledger keeps role names. reasons: allowed close_call reasons
+        per outcome (default: the hosted mock's table for the public briefs)."""
+        self.api = api or {}
+        self.reasons = reasons
         self.case = case
         self.ident = dict(case.get("identity") or {})
         self.products = []
@@ -33,37 +38,61 @@ class Bank(object):
         self.passed = set()
         self.closed = False
 
+    def _to_roles(self, tool, body):
+        m = (self.api.get(tool) or {}).get("req") or {}
+        rev = dict((v, k) for k, v in m.items())
+        out = dict((rev.get(k, k), v) for k, v in (body or {}).items())
+        if tool == "schedule_callback" and (self.api.get(tool) or {}).get("combined_datetime") and "T" in str(out.get("date")):
+            out["date"], out["time"] = str(out["date"]).split("T", 1)
+        return out
+
+    def _from_roles(self, tool, r):
+        if not isinstance(r, dict):
+            return r
+        m = (self.api.get(tool) or {}).get("resp") or {}
+        out = dict((m.get(k, k), v) for k, v in r.items())
+        if tool == "get_account":
+            im = (self.api.get(tool) or {}).get("item") or {}
+            pk = m.get("products", "products")
+            if isinstance(out.get(pk), list):
+                out[pk] = [dict((im.get(k, k), v) for k, v in it.items()) for it in out[pk]]
+        return out
+
     def call(self, tool, body):
         n = self.calls_by_tool.get(tool, 0) + 1
         self.calls_by_tool[tool] = n
+        rb = self._to_roles(tool, body)
         if tool in self.faults and n <= self.faults[tool]:
-            self.ledger["calls"].append({"tool": tool, "args": body, "result": {"http": 500}})
+            self.ledger["calls"].append({"tool": tool, "args": rb, "result": {"http": 500}})
             return 500, None
         if self.closed:
             r = {"ok": False, "error": "call already closed"}
         else:
-            r = getattr(self, "t_" + tool)(body)
-        self.ledger["calls"].append({"tool": tool, "args": body, "result": r})
-        return 200, r
+            r = getattr(self, "t_" + tool)(rb)
+        self.ledger["calls"].append({"tool": tool, "args": rb, "result": r})
+        return 200, self._from_roles(tool, r)
+
+    max_wrong = 3
 
     def t_verify_identity(self, b):
-        if self.wrong >= 3:
+        mw = self.max_wrong
+        if self.wrong >= mw:
             return {"ok": False, "error": "identity check ended"}
         field, ans = b.get("field"), str(b.get("answer") or "")
         true = str(self.ident.get(field) or "")
-        if field == "date_of_birth":
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", true):  # a date field (date_of_birth in the public briefs)
             if not re.match(r"^\d{4}-\d{2}-\d{2}$", ans):
                 return {"ok": False, "error": "answer is not a date"}
             y, m, d = ans.split("-")
             if ans != true and "%s-%s-%s" % (y, d, m) == true:
-                return {"ok": True, "verified": False, "hint": "day_month_swapped", "wrong_answers_left": 3 - self.wrong,
+                return {"ok": True, "verified": False, "hint": "day_month_swapped", "wrong_answers_left": mw - self.wrong,
                         "all_verified": False}
         if ans == true:
             self.passed.add(field)
-            return {"ok": True, "verified": True, "wrong_answers_left": 3 - self.wrong,
+            return {"ok": True, "verified": True, "wrong_answers_left": mw - self.wrong,
                     "all_verified": len(self.passed) >= len(self.ident)}
         self.wrong += 1
-        return {"ok": True, "verified": False, "wrong_answers_left": 3 - self.wrong, "all_verified": False}
+        return {"ok": True, "verified": False, "wrong_answers_left": mw - self.wrong, "all_verified": False}
 
     def verified(self):
         return len(self.passed) >= len(self.ident)
@@ -102,7 +131,7 @@ class Bank(object):
 
     def t_close_call(self, b):
         # mimics the hosted mock (seen 10 Oct): a reason field on an outcome without reasons is rejected
-        allowed = self.REASONS.get(b.get("outcome"))
+        allowed = (self.reasons if self.reasons is not None else self.REASONS).get(b.get("outcome"))
         if allowed is None:
             return {"ok": False, "error": "unknown outcome"}
         if ("reason" in b and b.get("reason") not in allowed) or (allowed and "reason" not in b):
@@ -294,7 +323,8 @@ class Walk(object):
         code, res = self.bank.call(tool, body)
         name = n["name"]
         okflag = "ok" if (code == 200 and isinstance(res, dict) and res.get("ok")) else "fail"
-        self.transcript.append(("tool", "%s:%s:%s" % (tool, okflag, body.get("product_id", "")), name))
+        rb = self.bank._to_roles(tool, body) if hasattr(self.bank, "_to_roles") else body
+        self.transcript.append(("tool", "%s:%s:%s" % (tool, okflag, rb.get("product_id", "")), name))
         for k in [k for k in self.V if k.startswith(name + "_response.")]:
             del self.V[k]
         if code != 200:
