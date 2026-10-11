@@ -717,14 +717,19 @@ def parse_time(text, cfg_start="10:00", cfg_end="19:00"):
                 mi = 30 if m3.group(1) == "half past" else (15 if m3.group(1) == "quarter past" else 45)
                 if m3.group(1) == "quarter to":
                     h -= 1
-    if h is None and mm and (mm.group(2) or mm.group(3) or re.search(r"\b(at|around|about|after|by|from)\s+" + mm.group(1) + r"\b", t)
-                             or re.search(r"\b" + mm.group(1) + r"\s*o ?clock\b", t)):
-        h = int(mm.group(1))
-        mi = int(mm.group(2) or 0)
-        if mm.group(3) == "pm":
-            pm = True
-        if mm.group(3) == "am":
-            am = True
+    if h is None:
+        # the first number that is clearly a time ('12:00', '3 pm', 'at 11', '4 o'clock'), not a day ('13 October')
+        for mm in re.finditer(r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b", t):
+            before = t[:mm.start()]
+            if mm.group(2) or mm.group(3) or re.search(r"\b(at|around|about|after|by|from|before)\s*$", before) \
+                    or re.match(r"\s*o ?clock\b", t[mm.end():]):
+                h = int(mm.group(1))
+                mi = int(mm.group(2) or 0)
+                if mm.group(3) == "pm":
+                    pm = True
+                if mm.group(3) == "am":
+                    am = True
+                break
     if h is None:
         for i, w in enumerate(toks):
             if w in ("at", "around", "about", "after", "by", "from") and i + 1 < len(toks):

@@ -115,7 +115,52 @@ def scenarios(policy):
     case5, right5, _ = make_case(policy, n_products=1)
     refusals = [("No, I won't pay.", {"reply": "no", "intent": "refuse_pay"})] * (2 + max(b["attempts"] for b in policy["bands"]))
     out.append(("refuses every offer", case5, verified_prefix(policy, right5) + refusals, "refused", []))
+    case6, right6, _ = make_case(policy, n_products=n)
+    out.append(("asks for a new payment plan", case6, verified_prefix(policy, right6) + [
+        ("I want a new payment plan with lower instalments.", {"topic": "restructuring"})], "transfer_restructuring", []))
+    case7, right7, _ = make_case(policy, n_products=1)
+    out.append(("hardship, declines the transfer", case7, verified_prefix(policy, right7) + [
+        ("I lost my job last month, I can't pay anything.", {"topic": "hardship", "intent": "too_much"}),
+        ("No, thank you, I don't want to be transferred.", {"reply": "no", "intent": "decline"})], "hardship", []))
+    case8, right8, _ = make_case(policy, n_products=1)
+    out.append(("insists on a person", case8, verified_prefix(policy, right8) + [
+        ("I want to speak to a real person.", {"topic": "human", "intent": "wants_human"}),
+        ("No, I want a human, please put me through.", {"topic": "human", "intent": "wants_human", "reply": "no"})],
+        "transfer_human", []))
+    case9, right9, _ = make_case(policy, n_products=1)
+    out.append(("disputes the debt", case9, verified_prefix(policy, right9) + [
+        ("This debt is not mine, I never had this product.", {"topic": "dispute"})], "dispute", []))
+    cb = callback_slot(policy, case["variables"]["now"])
+    if cb:
+        case10, _, _ = make_case(policy, n_products=1)
+        say = "They can be reached on %d %s at %s." % (cb.day, R.MONTH_NAMES[cb.month - 1], cb.strftime("%H:%M"))
+        out.append(("someone else answers, callback booked", case10, [
+            ("No, this is a colleague of theirs.", {"intent": "someone_else", "reply": "no"}),
+            (say, {"pay_date": "on %d %s" % (cb.day, R.MONTH_NAMES[cb.month - 1])})], "callback", None))
     return out
+
+
+def callback_slot(policy, now):
+    """A day and time the policy allows for a callback, an hour into the window."""
+    c = policy.get("callback") or {}
+    today = datetime.date.fromisoformat(now[:10])
+    now_t = now[11:16]
+    start, end = c.get("start", "09:00"), c.get("end", "17:00")
+    days = []
+    if "today" in (c.get("days") or []):
+        days.append(today)
+    if "tomorrow" in (c.get("days") or []):
+        days.append(today + datetime.timedelta(days=1))
+    if "next_business_day" in (c.get("days") or []):
+        days.append(R.add_business(today, 1, policy["calendar"]))
+    for d in days:
+        h, m = [int(x) for x in start.split(":")]
+        t = datetime.datetime(d.year, d.month, d.day, h, m) + datetime.timedelta(hours=1)
+        if d == today and t.strftime("%H:%M") <= now_t:
+            t = datetime.datetime(d.year, d.month, d.day, int(now_t[:2]) + 1, 0)
+        if t.strftime("%H:%M") <= end:
+            return t
+    return None
 
 
 def run_one(policy, ts, wf, name, case, script, situation, promises):
@@ -142,6 +187,12 @@ def run_one(policy, ts, wf, name, case, script, situation, promises):
         key = lambda p: (p["product_id"], round(float(p["amount"]), 2), p["date"])  # noqa: E731
         if sorted(map(key, led["promises"])) != sorted(map(key, promises)):
             problems.append("promises %s, expected %s" % (sorted(map(key, led["promises"])), sorted(map(key, promises))))
+    if situation == "callback" and len(led["callbacks"]) != 1:
+        problems.append("callbacks %s, expected one" % led["callbacks"])
+    if situation.startswith("transfer_"):
+        q = (policy.get("queues") or {}).get(situation[len("transfer_"):])
+        if [t.get("queue") for t in led["transfers"]] != [q]:
+            problems.append("transfers %s, expected queue %s" % (led["transfers"], q))
     problems += lessons.check(LW.events(w), led, policy, code_steps=w.code_steps_per_turn, max_node_entries=w.nodes_entered)
     if w.rejected:
         problems.append("writes the platform rejects: %s" % sorted(set(w.rejected)))
