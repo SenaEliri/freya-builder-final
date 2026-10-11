@@ -7,9 +7,9 @@
     }
   ],
   "repo": "https://github.com/SenaEliri/freya-builder-final",
-  "commit": "45e067ac5cfc3123ced5fbb2f776e443f0999c4f",
-  "run_command": "python3 builder/build.py {case_folder} --mock-url https://freya-bank-mock.yasarkaancan.workers.dev --slot rb-final --out submission/final",
-  "workflow": "submission/final/build-the-builder-final-case.workflow.json",
-  "trace": "traces/20261011T184020Z-rb-final.txt",
+  "commit": "3eaf9a03d19103e12462898bcc081ccf8c91e7af",
+  "run_command": "python3 builder/build.py {case_folder} --mock-url https://freya-bank-mock.yasarkaancan.workers.dev --slot rb-final3 --out submission/final3",
+  "workflow": "submission/final3/build-the-builder-final-case.workflow.json",
+  "trace": "traces/20261011T185527Z-rb-final3.txt",
   "mock_url": "https://freya-bank-mock.yasarkaancan.workers.dev"
 }
