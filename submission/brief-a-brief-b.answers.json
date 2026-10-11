@@ -1,42 +1,4 @@
 {
- "calendar": {
-  "weekend": [
-   5,
-   6
-  ],
-  "holidays": [
-   "2026-10-26",
-   "2026-11-11",
-   "2026-11-26",
-   "2026-12-25",
-   "2027-01-01"
-  ],
-  "next_weekday": "following_week",
-  "this_weekday": "current_week",
-  "numeric_order": "DMY"
- },
- "amounts": {
-  "products": {
-   "credit_card": {
-    "phrase": "credit card ending {card_last4}",
-    "floor_field": "minimum_payment"
-   },
-   "personal_loan": {
-    "phrase": "personal loan",
-    "floor_field": "instalment_amount"
-   },
-   "car_loan": {
-    "phrase": "car loan",
-    "floor_field": "instalment_amount"
-   }
-  },
-  "currency_word": null,
-  "first_ask_single": "Can you make this payment today?",
-  "first_ask_multi": "Can you pay all of them today?",
-  "rest_overdue": "the rest stays overdue",
-  "below_floor": "it cannot be recorded",
-  "never_ask_how_much": true
- },
  "bands": {
   "first_ask": {
    "date_rule": "today",
@@ -80,6 +42,44 @@
    }
   ]
  },
+ "calendar": {
+  "weekend": [
+   5,
+   6
+  ],
+  "holidays": [
+   "2026-10-26",
+   "2026-11-11",
+   "2026-11-26",
+   "2026-12-25",
+   "2027-01-01"
+  ],
+  "next_weekday": "following_week",
+  "this_weekday": "current_week",
+  "numeric_order": "DMY"
+ },
+ "amounts": {
+  "products": {
+   "credit_card": {
+    "phrase": "credit card ending {card_last4}",
+    "floor_field": "minimum_payment"
+   },
+   "personal_loan": {
+    "phrase": "personal loan",
+    "floor_field": "instalment_amount"
+   },
+   "car_loan": {
+    "phrase": "car loan",
+    "floor_field": "instalment_amount"
+   }
+  },
+  "currency_word": null,
+  "first_ask_single": "Can you make this payment today?",
+  "first_ask_multi": "Can you pay all of them today?",
+  "rest_overdue": "the rest stays overdue",
+  "below_floor": "it cannot be recorded",
+  "never_ask_how_much": true
+ },
  "third_party": {
   "callback_days": [
    "today",
@@ -91,6 +91,38 @@
   "max_asks": 2,
   "condolence": "I am sorry for your loss.",
   "wrong_number_say": null
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "date_of_birth",
+    "label": "your date of birth",
+    "ask": "Could you tell me your date of birth?",
+    "kind": "date",
+    "length": null,
+    "date_order": "DMY",
+    "answer_format": "YYYY-MM-DD",
+    "upper": false,
+    "keep_spaces": false
+   },
+   {
+    "field": "phone_last4",
+    "label": "the last four digits of the phone number on file",
+    "ask": "Could you tell me the last four digits of the phone number on file?",
+    "kind": "digits",
+    "length": 4,
+    "date_order": null,
+    "answer_format": null,
+    "upper": false,
+    "keep_spaces": false
+   }
+  ],
+  "max_wrong": 3,
+  "swap_hint": "day_month_swapped",
+  "swap_ask": "Could you say the month as a word?",
+  "fail_say": "Please use the mobile app or a branch.",
+  "explain_once": "these questions protect your account",
+  "decline_after": 2
  },
  "outcomes": {
   "promise": [
@@ -158,63 +190,6 @@
    "unclear"
   ]
  },
- "identity": {
-  "questions": [
-   {
-    "field": "date_of_birth",
-    "label": "your date of birth",
-    "ask": "Could you tell me your date of birth?",
-    "kind": "date",
-    "length": null,
-    "date_order": "DMY",
-    "upper": false,
-    "keep_spaces": false
-   },
-   {
-    "field": "phone_last4",
-    "label": "the last four digits of the phone number on file",
-    "ask": "Could you tell me the last four digits of the phone number on file?",
-    "kind": "digits",
-    "length": 4,
-    "date_order": null,
-    "upper": false,
-    "keep_spaces": false
-   }
-  ],
-  "max_wrong": 3,
-  "swap_hint": "day_month_swapped",
-  "swap_ask": "Could you say the month as a word?",
-  "fail_say": "Please use the mobile app or a branch.",
-  "explain_once": "these questions protect your account",
-  "decline_after": 2
- },
- "interrupts": {
-  "hardship": "mention illness, a death in the family or job loss",
-  "support_queue": "support",
-  "sympathy": "one short sentence of sympathy",
-  "support_offer": "Offer to connect them with the customer support team",
-  "dispute": "\"This debt is not mine\", \"I never had this product\", or a claim that the product was closed or paid off in the past",
-  "dispute_say": null,
-  "already_paid": "\"I already paid\"",
-  "paid_say": "say that payments can take one business day to appear",
-  "restructuring": "A request for a new payment plan or lower instalments",
-  "restructuring_queue": "restructuring",
-  "human": "A request for a human",
-  "human_queue": "general",
-  "human_ask_first": true,
-  "scam_say": "say they can verify the call by phoning Freya Bank's customer service number",
-  "robot_say": "say that you are Freya Bank's digital assistant",
-  "no_info_say": "say you do not have that information",
-  "change_say": "say they can change it in the mobile app",
-  "precedence": [
-   "hardship",
-   "restructuring",
-   "human",
-   "dispute",
-   "already_paid"
-  ],
-  "refuse_talk_times": 2
- },
  "multi": {
   "multi_enabled": true,
   "ask_all_today": true,
@@ -231,6 +206,33 @@
   },
   "notes_on_transfer": false,
   "closing_reason": "first_non_paid_note"
+ },
+ "interrupts": {
+  "hardship": "mention illness, a death in the family or job loss",
+  "support_queue": "support",
+  "sympathy": "one short sentence of sympathy",
+  "support_offer": "Offer to connect them with the customer support team",
+  "dispute": "\"This debt is not mine\", \"I never had this product\", or a claim that the product was closed or paid off in the past",
+  "dispute_say": null,
+  "already_paid": "\"I already paid\"",
+  "paid_say": "that payments can take one business day to appear",
+  "restructuring": "a request for a new payment plan or lower instalments",
+  "restructuring_queue": "restructuring",
+  "human": "a request for a human",
+  "human_queue": "general",
+  "human_ask_first": true,
+  "scam_say": "they can verify the call by phoning Freya Bank's customer service number",
+  "robot_say": "that you are Freya Bank's digital assistant",
+  "no_info_say": "you do not have that information",
+  "change_say": "they can change it in the mobile app",
+  "precedence": [
+   "hardship",
+   "restructuring",
+   "human",
+   "dispute",
+   "already_paid"
+  ],
+  "refuse_talk_times": 2
  },
  "sentences": {
   "opening": "I am a digital assistant calling from Freya Bank, and this call is recorded. Am I speaking with {title} {last_name}?",
@@ -257,7 +259,7 @@
   "change_in_app": "This cannot be changed in this call. You can change it in the mobile app.",
   "sympathy": "I am sorry to hear that.",
   "support_offer": "Would you like me to connect you with the customer support team?",
-  "help_first": "Can I help you first?",
+  "help_first": "Can I help you with something first?",
   "transfer": null,
   "deceased": "I am sorry for your loss.",
   "wrong_number": null,

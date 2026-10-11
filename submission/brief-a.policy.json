@@ -13,7 +13,7 @@
   "wrong_number": "I'm sorry for the inconvenience.",
   "id_intro": "Before I continue, I need to ask you two security questions.",
   "id_explain": "These questions protect your account.",
-  "id_fail": "I could not verify your identity. Please use the mobile app or a branch.",
+  "id_fail": "Please use the mobile app or a branch.",
   "id_retry": "That does not match our records. Could you tell me {label} again?",
   "id_swapped": "Please say the month as a word.",
   "id_unreadable": "Sorry, I didn't catch that. Could you tell me {label} again?",
@@ -42,9 +42,9 @@
   "scam_reply": "You can verify the call by phoning Freya Bank's customer service number.",
   "robot_reply": "I am Freya Bank's digital assistant.",
   "no_info": "I do not have that information.",
-  "change_in_app": "This cannot be changed in this call. You can change it in the mobile app.",
+  "change_in_app": "You can change it in the mobile app.",
   "record_failed": "I'm sorry, I could not record the promise for your {product} because of a technical problem.",
-  "help_first": "Can I help you with something first?",
+  "help_first": "Can I help you first?",
   "sympathy": "I am sorry to hear that.",
   "support_offer": "Would you like me to connect you with the customer support team?",
   "transfer": "I will transfer you now.",
@@ -67,7 +67,8 @@
     "label": "your date of birth",
     "ask": "Could you tell me your date of birth?",
     "kind": "date",
-    "date_order": "DMY"
+    "date_order": "DMY",
+    "format": "YYYY-MM-DD"
    },
    {
     "field": "phone_last4",

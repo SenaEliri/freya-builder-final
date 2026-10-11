@@ -44,7 +44,7 @@
   "no_info": "I do not have that information.",
   "change_in_app": "This cannot be changed in this call. You can change it in the mobile app.",
   "record_failed": "I'm sorry, I could not record the promise for your {product} because of a technical problem.",
-  "help_first": "Can I help you first?",
+  "help_first": "Can I help you with something first?",
   "sympathy": "I am sorry to hear that.",
   "support_offer": "Would you like me to connect you with the customer support team?",
   "transfer": "I will transfer you now.",
@@ -67,7 +67,8 @@
     "label": "your date of birth",
     "ask": "Could you tell me your date of birth?",
     "kind": "date",
-    "date_order": "DMY"
+    "date_order": "DMY",
+    "format": "YYYY-MM-DD"
    },
    {
     "field": "phone_last4",
@@ -256,8 +257,8 @@
   "hardship": "mention illness, a death in the family or job loss",
   "dispute": "\"This debt is not mine\", \"I never had this product\", or a claim that the product was closed or paid off in the past",
   "already_paid": "\"I already paid\"",
-  "restructuring": "A request for a new payment plan or lower instalments",
-  "human": "A request for a human",
+  "restructuring": "a request for a new payment plan or lower instalments",
+  "human": "a request for a human",
   "precedence": [
    "hardship",
    "restructuring",

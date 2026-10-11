@@ -56,12 +56,17 @@ python3 tools/run_cases.py <agent_id> --brief A [--style talkative] --out result
 python3 -m qa.check_run results/x.json submission/<brief>.policy.json   # lesson checks on live calls
 ```
 
-## State on 11 Oct, 07:00 UTC
+## State on 11 Oct, 07:30 UTC
 
-- Builder-produced agents on the live public cases: **Brief A 10/10**, **Brief B 3/3** (single runs; median slowest
-  turn 1–3 s); speech styles pieces / corrects / asks_back / in_words / talkative pass on two cases each.
+- Builder-produced agents on the live public cases (single runs): **Brief A 10/10** plain and **10/10 in the pieces
+  style**; **Brief B 3/3** plain and 3/3 in each of talkative, corrects, pieces, asks_back and in_words (after fixes);
+  the A cases also passed corrects / asks_back / in_words / talkative on two cases each.
 - Extraction matches hand-written facts for Brief A, A+B, and two raw-material fixtures of different shapes
-  (`tests/fixtures/messy-brief.md`, `tests/fixtures/raw2-brief.md`).
+  (`tests/fixtures/messy-brief.md`, `tests/fixtures/raw2-brief.md`, the second with other call variables and a
+  renamed tool API). Builder self-tests: 11 made-up customers per brief (promise, wrong number, identity failure,
+  already paid, refusals, restructuring, hardship, person, dispute, callback).
+- Platform latency rises under load (one 30 s turn seen, all in the platform's extraction step; code steps take
+  0.3–1 s). Organisers discard and repeat runs whose median slowest turn is above 10 s.
 
 ## Lessons found live (all covered by tests)
 
