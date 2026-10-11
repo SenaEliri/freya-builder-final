@@ -2,6 +2,7 @@
 
 Graph (one code step per customer turn, L11):
   open --(customer)--> decide --route--> say | verify chain | write chains | transfer | callback | end_*
+  (decide_r: the same code step, run once more only when decide itself failed in the sandbox)
   every waiting conversation node: same extraction schema (L8), single transition -> decide
   bank calls are engine-run api_request nodes (pre_actions route at once, L14); their outcomes pick
   result lines that decide precomputed, so no second code step is needed in the same turn.
@@ -250,14 +251,22 @@ def build(policy, toolspec):
         route_tr.append(when("route", "equals", rname, "bye" + rname[3:]))
     route_tr.append(always("say"))
     code = bundle.code(policy)
-    nodes["decide"] = {"name": "decide", "node_type": "code", "passthrough": True, "passthrough_default_transition": "say",
-                       "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
-                       "pre_actions": [{"type": "function", "function": {
-                           "name": "code_exec", "handler": "__function__:code_exec",
-                           "parameters": {"type": "object", "properties": {
-                               "code": {"type": "string", "default": code},
-                               "timeout_ms": {"type": "number", "default": 15000}}}}}],
-                       "transitions": route_tr}
+
+    def decide_node(name, on_fail):
+        tr = [when(name + "_response.status", "not_equals", "success", on_fail,
+                   "decide failed: retry once" if on_fail != "end_tech" else "decide failed: honest technical ending")]
+        return {"name": name, "node_type": "code", "passthrough": True, "passthrough_default_transition": "say",
+                "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
+                "pre_actions": [{"type": "function", "function": {
+                    "name": "code_exec", "handler": "__function__:code_exec",
+                    "parameters": {"type": "object", "properties": {
+                        "code": {"type": "string", "default": code},
+                        "timeout_ms": {"type": "number", "default": 15000}}}}}],
+                "transitions": tr + route_tr[1:]}
+    # a sandbox failure ('did not return a parseable result', seen live once in 351 steps) applies no variable, so
+    # the same step runs once more on the same input; a second failure is the honest technical ending
+    nodes["decide"] = decide_node("decide", "decide_r")
+    nodes["decide_r"] = decide_node("decide_r", "end_tech")
     nodes["say"] = conv("say", "say", extraction=ex)
     # identity check: engine-run call, result picks a precomputed line
     swap = (policy.get("identity") or {}).get("swap_hint")

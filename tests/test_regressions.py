@@ -547,3 +547,43 @@ def test_shared_proposal_amount_is_checked_per_product():
         ("Yes, I confirm.", YES)])
     assert promises(bank) == [("p1", 412.35, "2026-11-06"), ("p2", 215.0, "2026-11-06")], text(w)
     assert_clean_end(w, bank, "B")
+
+
+@pytest.mark.parametrize("phrase", ["all three of them", "both of them", "all 3 accounts", "two of them", "the three loans"])
+def test_product_counts_are_not_amounts(phrase):
+    ar = R.read_amount({"turn": 1}, {"pay_amount": phrase, "utterance": "I can pay %s on Friday." % phrase, "intent": "propose"})
+    assert ar["status"] == "none", ar
+
+
+def test_decide_step_is_retried_once_before_the_technical_ending():
+    nodes = WF["A"]["nodes"]
+    first = nodes["decide"]["transitions"][0]
+    assert first["target_node"] == "decide_r" and nodes["decide_r"]["transitions"][0]["target_node"] == "end_tech"
+    code = lambda n: n["pre_actions"][0]["function"]["parameters"]["properties"]["code"]["default"]  # noqa: E731
+    assert code(nodes["decide"]) == code(nodes["decide_r"])
+    assert [t["target_node"] for t in nodes["decide"]["transitions"][1:]] == \
+        [t["target_node"] for t in nodes["decide_r"]["transitions"][1:]]
+
+
+def test_a_sandbox_failure_of_the_decide_step_recovers():
+    """The platform's sandbox once returned no parseable result: nothing was applied. The retry node runs the same
+    step on the same input and the call goes on as if nothing happened."""
+    orig = LW.Walk.run_code
+    failed = []
+
+    def flaky(self, n):
+        if n["name"] == "decide" and len(self.code_steps_per_turn) == 3 and not failed:  # the 4th customer turn
+            failed.append(1)
+            self.V["decide_response.status"] = "error"
+            return
+        if n["name"] == "decide":
+            self.V["decide_response.status"] = "success"
+        return orig(self, n)
+    LW.Walk.run_code = flaky
+    try:
+        w, bank = call("A", [CARD], [("I can pay it all on Friday.", {"intent": "propose", "pay_date": "on Friday"}),
+                                     ("Yes, I confirm.", YES)])
+    finally:
+        LW.Walk.run_code = orig
+    assert failed and promises(bank) == [("p1", 1374.5, "2026-11-06")], text(w)
+    assert "technical problem" not in text(w)

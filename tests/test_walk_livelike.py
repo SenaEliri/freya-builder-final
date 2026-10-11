@@ -176,3 +176,44 @@ def test_live_c2_in_words_floor_named_once():
     assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
     offers = [t for k, t, _ in LW.events(w) if k == "agent" and "637.50" in t and not t.startswith(("So that is", "Your promise"))]
     assert len(offers) == 1, text
+
+
+# candidate 2 v2, live pieces run (simulation a66ef1e1), PUB-11: 'all three of them' (pay_amount) was read as 3
+# dollars, so every product went to the below-floor branch and the card ended up refused; 'I cannot pay those today'
+# came back from the extractor as too_much
+LIVE_C2_PUB11_PIECES = [
+    ("Yes, this is Sofia Almeida.", {"reply": "yes"}),
+    ("3 June.", {"reply": "none", "intent": "none", "topic": "none"}),
+    ("Nineteen eighty-seven.", {"reply": "yes"}),
+    ("22.", {"reply": "none"}), ("88.", {"reply": "yes"}),
+    ("What is this regarding?", {"reply": "none", "intent": "none", "topic": "what_about"}),
+    ("I cannot pay those today.", {"reply": "no", "intent": "too_much"}),
+    ("I can pay all three of them this Friday.", {"reply": "yes", "intent": "propose", "pay_date": "this Friday",
+                                                  "pay_amount": "all three of them"}),
+    ("Yes, I confirm.", {"reply": "yes"}),
+]
+
+
+def test_live_c2_all_three_of_them_is_scope_not_an_amount():
+    w, bank, pol = walk("PUB-11", script=LIVE_C2_PUB11_PIECES)
+    text = LW.text_of(w)
+    r = score_ledger(CASES["PUB-11"], bank.ledger)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], text)
+    assert "can't record" not in text and "66 dollars" not in text, text  # no floor offer for a refusal of today
+
+
+# candidate 2 v2, live talkative run (simulation 28fe438d), PUB-12: small talk ('back-to-back calls all day and
+# haven't had a moment') made a bare 'all' name every product in a negative clause, so all three were refused
+def test_live_c2_small_talk_all_day_is_not_a_product_scope():
+    script = [("Yes, this is Marcus Bell.", {"reply": "yes"}), ("Nineteen October nineteen eighty three.", {}),
+              ("Four four one zero.", {"reply": "yes"}),
+              ("I appreciate that, I've just been juggling so many meetings this afternoon. What is this call regarding?",
+               {"reply": "ack", "intent": "none", "topic": "what_about"}),
+              ("I've been on back-to-back calls all day and haven't had a moment to breathe. I will pay the credit card "
+               "tomorrow, but I'm not paying the personal loan or the car loan.",
+               {"reply": "no", "intent": "propose", "pay_date": "tomorrow", "pay_amount": "the credit card"}),
+              ("No.", {"reply": "no", "intent": "refuse_pay"}), ("No.", {"reply": "no", "intent": "refuse_pay"}),
+              ("No.", {"reply": "no", "intent": "refuse_pay"}), ("Yes, I confirm.", {"reply": "yes"})]
+    w, bank, pol = walk("PUB-12", script=script)
+    r = score_ledger(CASES["PUB-12"], bank.ledger)
+    assert w.ended and r["pass"], "%s\n%s" % (r["failed"], LW.text_of(w))

@@ -303,6 +303,10 @@ def amount_span(utt, phrase):
     return " ".join(ut[i:j])
 
 
+SCOPE_COUNT = re.compile(r"\b(?:all|the|those|these|both|my)\s+(?:two|three|four|2|3|4)(?:\s+of\s+(?:them|those|these))?"
+                         r"(?:\s+(?:products|accounts|loans|cards|debts|bills|ones))?\b|"
+                         r"\b(?:one|two|three|1|2|3)\s+of\s+(?:them|those|these|the\s+\w+|my\s+\w+)\b|"
+                         r"\b(?:two|three|2|3)\s+(?:products|accounts|loans|cards|debts|bills)\b")
 AMOUNT_REFS = (("floor", re.compile(r"\b(minimum|lowest|least|smallest|floor|instalment|installment)\b")),
                ("full", re.compile(r"\b(full|whole|entire|total|everything|all of it|the lot|past due|overdue|all)\b")),
                ("that", re.compile(r"^(that|it|this|that amount|this amount|the same|same amount|same|that much|"
@@ -1055,6 +1059,10 @@ def read_amount(st, inp):
         return {"status": "none"}
     if utt and negated_in(utt, ph):
         return {"status": "none", "negated": True}
+    ph = SCOPE_COUNT.sub(" ", norm(ph)).strip()  # 'all three of them' names products, not 3 dollars
+    if not re.search(r"[a-z0-9]", ph):
+        return {"status": "none"}
+    utt = SCOPE_COUNT.sub(" ", norm(utt))
     u, n = norm(utt), norm(ph)
     clause = next((c for c in CLAUSES.split(u) if n and n in c), u) if n in u else u
     if TOO_MUCH.search(clause) or (inp.get("intent") == "too_much" and not PAY_INTENT.search(clause)):
@@ -1942,7 +1950,13 @@ def scope_products(st, inp, P):
     """Which products a customer statement covers (multi-product)."""
     t = norm(inp["utterance"] + " " + inp["pay_date"])
     prods = st["products"]
-    if re.search(r"\b(all|both|everything|all of them|every one|each of them|the three|all three|the two)\b", t):
+    # 'all day', 'at all', 'with everything going on' are small talk, not products; a generic 'all' / 'everything'
+    # names the products only in a clause about paying or about the products themselves
+    g = re.sub(r"\b(all (day|morning|afternoon|evening|night|week|weekend|month|year|the time|along|alone|right|over)|"
+               r"at all|after all|everything (else|going on|is|was|has been))\b", " ", t)
+    if re.search(r"\b(all|both|everything|every one|each of them|the three|the two)\b", g) and (
+            PAY_CUE.search(g) or re.search(r"\b(both|of them|three|two|each|every one|them|those|these|products|accounts|"
+                                           r"loans|debts)\b", g)):
         return [p for p in prods if p["status"] in ("open", "agreed")]
     hits, matched = [], {}
     for p in prods:
@@ -2271,6 +2285,10 @@ def step_negotiate(st, inp, V, P, out, pm, today):
     if ph == "after_fail":
         absorb_writes(st, V)
         return finish_after_fail(st, out, V, P, pm, today)
+    u = norm(inp["utterance"])
+    if intent == "too_much" and u and NEG_DAY.search(u) and not TOO_MUCH.search(u) and \
+            not re.search(r"\b(full|whole|all of it|that much|so much|amount|everything|total)\b", u):
+        inp["intent"] = intent = "refuse_pay"  # the extractor's too_much for 'I cannot pay those today'
     inp["dres"] = read_date(st, inp, P, today)
     inp["ar"] = read_amount(st, inp)
     # interrupts first (L8), by the brief's precedence
@@ -2629,7 +2647,7 @@ def settle_group(st, out, V, P, pm, today, ar, targets, d):
         day, clamped = (d_iso(dl), True) if day0 > dl else (d_iso(day0), False)
         am = amount_for(st, p, ar)
         if am["status"] == "none":
-            a = off.get("amount", p["past_due"]) if off.get("kind") not in ("today", None) else p["past_due"]
+            a = off.get("amount", p["past_due"]) if off.get("kind") in ("change", "amount_only") else p["past_due"]
             accept(p, a, day, clamped)
             continue
         if am["status"] == "ambiguous":
