@@ -34,6 +34,9 @@ THE PART:
 %(text)s"""
 
 TOPICS = [
+    ("outline", "The normal course of one call from the first step to the last, as at most twelve numbered steps in order. Each step in "
+                "one line: what triggers it, the service it uses if any, and the question, offer or sentence it ends with. Include the "
+                "steps that come between giving the information and ending the call (further questions, offers). No special cases."),
     ("start", "Who the caller is and what is already known when the call starts; what the assistant is for and what is outside its "
               "job; the language; how the item the call is about (for example which card or account) is found and chosen, "
               "including every special case of that choice."),

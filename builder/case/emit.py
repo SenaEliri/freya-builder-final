@@ -14,11 +14,15 @@ PLATFORM_RULES = """HOW YOU WORK ON THIS PLATFORM
 - Call one tool at a time. After every tool result either speak to the caller or call the next tool. Never end a turn with nothing.
 - Never call a service that changes or sends something before the caller has given the consent your instructions require for it. Call it once only.
 - Every amount, date, name and digit you say must come from a tool result of this call. Copy values exactly. If a value did not come from a service, do not say it.
-- Send identifiers to tools exactly as an earlier tool result returned them, character for character.
+- You are not shown the tool results of earlier turns again. SERVICE RESULTS SO FAR in your current task is your memory of them: the latest answer of every service in this call. Take every value you say or send from there or from a tool result of this turn.
+- Send identifiers to tools exactly as a service returned them, character for character, including any mask characters. Never send a value you cannot find in SERVICE RESULTS SO FAR or in what the caller just chose.
 - A tool result that says the request failed, or has no success status, is a service failure unless your instructions name that result as a normal case.
 - A tool result may hold "assistant_notes": facts worked out for you from the result (for example how each date relates to now). Use them; never read them out as they are.
 - A service that changes or sends something is refused by the platform when the caller has not spoken since the last service result. A tool error that starts with NOT ALLOWED YET is that refusal, not a service failure: do what it says, and do not tell the caller about it.
 - Do not stop after giving information when your instructions name a next step (a service to call, a question, an offer): do that next step in the same turn. When an offer or question depends on a service lookup, call that service before you speak, then give the information and the offer in one message.
+- A caller's message can reach you cut off in the middle. If a message is incomplete, or you are not sure what the caller wants, ask. Never end the call on an incomplete or unclear message, and never because the caller turned down one of several things you offered: ask what they would like instead.
+- If an instruction depends on a fact that no service gives you, assume the ordinary case and let the service decide. Do not hold back an offer or a step because of such a fact.
+- When a result note gives an amount as whole part and hundredths, say exactly those two numbers.
 - To end the call, CALL the closing tool (its name starts with transition_to_) whose situation matches. The platform then says that tool's closing sentence itself: do not say that sentence yourself. Anything else you must say first goes in the same message as the tool call.
 - Never end the call any other way, and never go on talking after a closing sentence."""
 
@@ -34,6 +38,7 @@ try:
         except Exception:
             today = None
         notes = dict()
+        amounts = dict()
         def walk(o, path):
             if isinstance(o, dict):
                 for k in o:
@@ -41,6 +46,13 @@ try:
             elif isinstance(o, list):
                 for i, x in enumerate(o):
                     walk(x, path + '[' + str(i) + ']')
+            elif isinstance(o, float) and not isinstance(o, bool):
+                try:
+                    if abs(o - round(o)) > 0.0000001:
+                        t = ('%.2f' % abs(o)).split('.')
+                        amounts[path] = ('minus ' if o < 0 else '') + t[0] + '.' + t[1] + ' exactly: whole part ' + t[0] + ', then ' + str(int(t[1])) + ' hundredths (two decimal places)'
+                except Exception:
+                    pass
             elif isinstance(o, str) and today is not None:
                 m = re.match(r'^(\\d{2})\\.(\\d{2})\\.(\\d{4})$', o)
                 if m:
@@ -55,8 +67,29 @@ try:
             if isinstance(inner, dict):
                 inner.pop('details', None)
             walk(body, '')
-            if notes:
-                body['assistant_notes'] = dict(now=now_raw, dates=notes)
+            if notes or amounts:
+                body['assistant_notes'] = dict(now=now_raw, dates=notes, amounts_with_decimals=amounts)
+            try:
+                lines = []
+                def flat(o, path):
+                    if isinstance(o, dict):
+                        for k in o:
+                            flat(o[k], (path + '.' + k) if path else k)
+                    elif isinstance(o, list):
+                        if not o:
+                            lines.append(path + ' = (empty list)')
+                        for i, x in enumerate(o):
+                            flat(x, path + '[' + str(i + 1) + ']')
+                    elif o is not None:
+                        lines.append(path + ' = ' + str(o) + ((' (' + notes[path].split(' ', 1)[1] + ')') if path in notes else '') + ((' (' + amounts[path] + ')') if path in amounts else ''))
+                for k in body:
+                    if k not in ('assistant_notes', 'what_to_do_next', 'result'):
+                        flat(body[k], k)
+                sent = [str(k)[len(TOOL) + 6:] + '=' + str(vars.get(k)) for k in sorted(vars) if str(k).startswith(TOOL + '_args.')]
+                mem = 'answered' + ((' for ' + ', '.join(sent)) if sent else '') + ':' + chr(10) + '  ' + (chr(10) + '  ').join(lines)
+                vars['mem_' + TOOL] = mem[:3500].replace('{' + '{', '{ {').replace('}' + '}', '} }')
+            except Exception:
+                pass
             body['what_to_do_next'] = 'Before you speak: if what your instructions make you say after this (a question, an offer) depends on another service, call that service now and speak only after its result. Otherwise speak to the caller now and include the next question or offer your instructions name. Do not stay silent.'
 except Exception:
     pass
@@ -139,8 +172,8 @@ def body_schema(example, field_sources, call_vars, service):
                 props[key] = {"type": _jtype(fixed), "default": fixed}
             else:
                 note = str(src.get("note") or "").strip()
-                desc = ("%s. Take the real value from this call. (The documentation's sample, only to show the form, never to be sent: %s)"
-                        % (note.rstrip(".") if note else "Value for %s" % key, json.dumps(value, ensure_ascii=False)))
+                desc = ("%s. Copy the real value of this call from SERVICE RESULTS SO FAR or from what the caller chose; never a sample value."
+                        % (note.rstrip(".") if note else "Value for %s" % key))
                 props[key] = {"type": _jtype(value), "description": desc, "default": "{{%s}}" % key}
                 required.append(key)
                 filled.append(key)
@@ -168,7 +201,7 @@ def api_tool(contract, service, mock_url, field_sources, call_vars, now_var, tim
                              "body": body}}},
             "pre_process_code": (_const("NODE", node) + "GUARD = %s\n" % bool(guard) + "FROM_CALL = dict(%s)\n" % ", ".join(
                 "%s=%s" % (k, json.dumps(v)) for k, v in sorted(from_call.items())) + PRE_HOOK),
-            "post_process_code": _const("NOW_VAR", now_var) + POST_HOOK}
+            "post_process_code": _const("NOW_VAR", now_var) + _const("TOOL", name) + POST_HOOK}
     return tool, filled
 
 
@@ -239,6 +272,8 @@ def build(spec, contract, mock_url, slow_service_ms=30000):
               "failures": "TRIES, FAILURES, TRANSFERS AND ENDINGS", "security": "SECURITY AND CONDUCT"}
     parts = ["You are the phone voice assistant described by the instructions below. You are in a live call. Speak %s with the caller, in short natural sentences." % language,
              PLATFORM_RULES]
+    if sections.get("outline"):
+        parts.append("THE NORMAL COURSE OF A CALL (details follow below)\n" + "\n".join(sections["outline"]))
     for key in ("start", "reading", "actions", "failures", "security"):
         if sections.get(key):
             parts.append(titles[key] + "\n" + "\n".join("- " + line for line in sections[key]))
@@ -247,12 +282,14 @@ def build(spec, contract, mock_url, slow_service_ms=30000):
 
     var_lines = "\n".join("- %s (%s): {{%s}}" % (v["name"], str(v.get("meaning") or "")[:120], v["name"]) for v in call_variables)
     task = "CALL VARIABLES OF THIS CALL\n%s\n\n" % var_lines
+    mem_lines = "\n".join("- `%s` (tool %s): {{mem_%s}}" % (x["name"], S.tool_name(x["name"]), S.tool_name(x["name"])) for x in contract["services"])
+    task += "SERVICE RESULTS SO FAR IN THIS CALL (latest answer of each service)\n%s\n\n" % mem_lines
     if start:
         # The model makes this call itself: an engine-run call in front of the conversation took the whole chat turn
         # down (HTTP 502) when the service answered 404, which is an ordinary answer for some callers.
-        task += ("START OF THIS CALL\nIf no service has been called yet in this call: before you say anything, CALL the tool %s "
-                 "(service `%s`). It needs no value from the caller. What it returns decides your first sentence.\n\n"
-                 % (S.tool_name(start["name"]), start["name"]))
+        task += ("START OF THIS CALL\nIf `%s` above still says it was not called: before you say anything, CALL the tool %s. "
+                 "It needs no value from the caller. What it returns decides your first sentence.\n\n"
+                 % (start["name"], S.tool_name(start["name"])))
     task += ("Follow your instructions from the first step that is still open. If the next step is a service call, CALL the tool now; "
              "otherwise speak to the caller. Use the moment of the call given above for every decision about dates, never today's real date.")
 
@@ -262,7 +299,11 @@ def build(spec, contract, mock_url, slow_service_ms=30000):
     # no test_variables: an example value in the workflow was seen to reach service calls in place of the call's own value
     wf = {"system_prompt": system_prompt, "global_nodes": {}, "nodes": nodes}
     examples = {v["name"]: str(v.get("example") or "") for v in call_variables if str(v.get("example") or "")}
-    wf["initial_node"] = "assistant"
+    boot = "".join("vars[%s] = 'not called yet in this call'\n" % json.dumps("mem_" + S.tool_name(x["name"])) for x in contract["services"])
+    nodes["boot"] = {"name": "boot", "node_type": "code", "passthrough": True, "passthrough_default_transition": "assistant",
+                     "on_enter": {"type": "silent"}, "pre_actions": [_code(boot)],
+                     "transitions": [{"target_node": "assistant", "description": "always", "condition": {"operator": "always"}}]}
+    wf["initial_node"] = "boot"
     return wf, {"start_service": start["name"] if start else "", "tools": [t["function"]["name"] for t in tools],
                 "endings": len(end_transitions), "consent_guard_on": guarded, "system_prompt_chars": len(system_prompt), "now_variable": now_var,
                 "call_variables": call_vars, "example_variables": examples}

@@ -92,10 +92,16 @@ def test_workflow_shape(tmp_path):
     c = S.find_contract(docs)
     wf, summary = emit.build(spec(), c, "https://mock.example/")
     assert emit.lint(wf) == []
-    assert wf["initial_node"] == "assistant" and summary["start_service"] == "visits.list" and summary["now_variable"] == "now"
+    assert wf["initial_node"] == "boot" and summary["start_service"] == "visits.list" and summary["now_variable"] == "now"
+    boot = wf["nodes"]["boot"]["pre_actions"][0]["function"]["parameters"]["properties"]["code"]["default"]
+    v = {}
+    exec(boot, {"vars": v})
+    assert sorted(v) == ["mem_visit_move", "mem_visits_list"]
+    assert "{{mem_visits_list}}" in wf["nodes"]["assistant"]["task_message"]
     tools = wf["nodes"]["assistant"]["tools"]
     assert [t["function"]["name"] for t in tools] == ["visits_list", "visit_move"]
     assert "CALL the tool visits_list" in wf["nodes"]["assistant"]["task_message"]
+    assert "v-1" not in json.dumps(tools)  # no sample value from the contract reaches a tool description
     start = tools[0]["function"]["parameters"]["properties"]
     assert start["url"]["default"] == "https://mock.example/desk/v2/visits.list"
     data = start["body"]["properties"]["data"]["properties"]
@@ -124,11 +130,17 @@ def test_start_service_needs_only_known_values(tmp_path):
 
 
 def test_post_hook_adds_date_facts():
-    hook = emit._const("NOW_VAR", "now") + emit.POST_HOOK
-    result = {"status": "success", "header": {"x": 1}, "data": {"data": {"due": "15.10.2026", "cut": "05.10.2026", "today": "12.10.2026"},
+    hook = emit._const("NOW_VAR", "now") + emit._const("TOOL", "bal") + emit.POST_HOOK
+    result = {"status": "success", "header": {"x": 1}, "data": {"data": {"due": "15.10.2026", "cut": "05.10.2026", "today": "12.10.2026", "min": 34.1, "debt": 85.2, "round": 12000.0},
                                                                  "result": {"code": "1", "details": {"guid": "g"}}}}
-    exec(hook, {"result": result, "vars": {"now": "2026-10-12T10:30:00+03:00"}})
+    v = {"now": "2026-10-12T10:30:00+03:00", "bal_args.cardNumber": "54**12"}
+    exec(hook, {"result": result, "vars": v})
     notes = result["data"]["assistant_notes"]["dates"]
+    assert v["mem_bal"].startswith("answered for cardNumber=54**12:") and "data.due = 15.10.2026 (is in 3 day(s), not reached yet)" in v["mem_bal"]
+    assert "result" not in v["mem_bal"].split(":", 1)[1] and "{{" not in v["mem_bal"]
+    amounts = result["data"]["assistant_notes"]["amounts_with_decimals"]
+    assert amounts["data.min"].startswith("34.10 exactly: whole part 34, then 10 hundredths") and "data.round" not in amounts
+    assert "data.min = 34.1 (34.10 exactly" in v["mem_bal"]
     assert "header" not in result and "details" not in result["data"]["result"]
     assert "in 3 day(s)" in notes["data.due"] and "already passed" in notes["data.cut"] and notes["data.today"].endswith("is today")
 
