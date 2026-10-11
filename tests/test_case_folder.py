@@ -62,6 +62,7 @@ def spec():
             "wiring": {"language": "English", "start_service": "visits.list",
                        "call_variables": [{"name": "patientId", "meaning": "patient", "example": "p9"},
                                           {"name": "now", "meaning": "time of call", "example": "2026-03-01T10:00:00+03:00"}],
+                       "consent": {"clear_yes": ["Yes", "I confirm"], "not_clear": ["I suppose", "maybe"]},
                        "services": {"visits.list": {"changes_something": False}, "visit.move": {"changes_something": True}},
                        "fields": {"visits.list": {"patientId": {"source": "call_variable", "value": "patientId"},
                                                   "channel": {"source": "constant", "value": "Voice"}},
@@ -173,3 +174,27 @@ def test_call_variable_fields_are_written_from_the_live_call(tmp_path):
     config = {"body": {"data": {"visitId": "p9", "day": 3}, "meta": {"caller": ""}}}
     exec(pre, {"vars": {"assistant.total_turns": 2, "patientId": "real-77"}, "config": config})
     assert json.loads(config["body"]) == {"data": {"visitId": "real-77", "day": 3}, "meta": {"caller": ""}}
+
+
+def test_consent_guard_wants_a_clear_yes(tmp_path):
+    docs, _ = S.read_sources(make_case(tmp_path))
+    wf, summary = emit.build(spec(), S.find_contract(docs), "https://mock.example")
+    assert summary["clear_yes"] == ["yes", "i confirm"] and summary["not_clear"] == ["i suppose", "maybe"]
+    pre = wf["nodes"]["assistant"]["tools"][1]["pre_process_code"]
+    read_only = wf["nodes"]["assistant"]["tools"][0]["pre_process_code"]
+
+    def allowed(code, said):
+        v = {"assistant.total_turns": 5, "last_service_turn": "4",
+             "system.conversation": [{"role": "assistant", "content": "Do you confirm?"}, {"role": "user", "content": said}]}
+        try:
+            exec(code, {"vars": v, "config": {}})
+            return True
+        except Exception as e:
+            assert str(e).startswith("NOT ALLOWED YET")
+            return False
+
+    assert allowed(pre, "Yes.") and allowed(pre, "YES, I confirm!")
+    assert not allowed(pre, "Fine, I suppose") and not allowed(pre, "yes maybe") and not allowed(pre, "go on then")
+    assert allowed(read_only, "go on then")  # only services that change something are guarded
+    v = {"assistant.total_turns": 5, "last_service_turn": "4"}  # no transcript visible: the turn rule alone applies
+    exec(pre, {"vars": v, "config": {}})

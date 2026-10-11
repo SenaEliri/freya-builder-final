@@ -18,7 +18,7 @@ PLATFORM_RULES = """HOW YOU WORK ON THIS PLATFORM
 - Send identifiers to tools exactly as a service returned them, character for character, including any mask characters. Never send a value you cannot find in SERVICE RESULTS SO FAR or in what the caller just chose.
 - A tool result that says the request failed, or has no success status, is a service failure unless your instructions name that result as a normal case.
 - A tool result may hold "assistant_notes": facts worked out for you from the result (for example how each date relates to now). Use them; never read them out as they are.
-- A service that changes or sends something is refused by the platform when the caller has not spoken since the last service result. A tool error that starts with NOT ALLOWED YET is that refusal, not a service failure: do what it says, and do not tell the caller about it.
+- A service that changes or sends something is refused by the platform when the caller has not spoken since the last service result, or when the caller's last answer was not a clear yes. A tool error that starts with NOT ALLOWED YET is that refusal, not a service failure: do what it says, and do not tell the caller about it.
 - Do not stop after giving information when your instructions name a next step (a service to call, a question, an offer): do that next step in the same turn. When an offer or question depends on a service lookup, call that service before you speak, then give the information and the offer in one message.
 - A caller's message can reach you cut off in the middle. If a message is incomplete, or you are not sure what the caller wants, ask. Never end the call on an incomplete or unclear message, and never because the caller turned down one of several things you offered: ask what they would like instead.
 - If an instruction depends on a fact that no service gives you, assume the ordinary case and let the service decide. Do not hold back an offer or a step because of such a fact.
@@ -103,6 +103,20 @@ except Exception:
     turn, last = '', ''
 if GUARD and turn and last == turn:
     raise Exception('NOT ALLOWED YET. This is not a service failure. This service changes or sends something and the caller has not answered since the last service result. Now tell the caller exactly what will be done, with the values from the last result, and ask for a clear yes. Call this tool again only after the caller has clearly said yes.')
+if GUARD and YES:
+    said = ''
+    try:
+        conv = vars.get('system.conversation')
+        if isinstance(conv, list):
+            for m in conv:
+                if isinstance(m, dict) and m.get('role') == 'user':
+                    said = str(m.get('content') or '')
+        import re
+        said = ' ' + re.sub(r'[^\\w]+', ' ', said.lower().replace(chr(775), '')).strip() + ' '
+    except Exception:
+        said = ''
+    if said.strip() and (any((' ' + h + ' ') in said for h in HEDGE) or not any((' ' + y + ' ') in said for y in YES)):
+        raise Exception('NOT ALLOWED YET. This is not a service failure. The last thing the caller said was not a clear yes. Ask the same confirmation question once more, short and plain, and wait for the answer. Call this tool again only after the caller has clearly said yes.')
 try:
     vars['last_service_turn'] = turn
 except Exception:
@@ -185,8 +199,18 @@ def body_schema(example, field_sources, call_vars, service):
     return build(example, False)[0], filled, from_call
 
 
+def words(items):
+    """Normalised words and phrases for the consent check: lower case, letters and digits only."""
+    out = []
+    for x in items if isinstance(items, list) else []:
+        w = re.sub(r"[^\w]+", " ", str(x).lower().replace(chr(775), "")).strip()
+        if w and w not in out:
+            out.append(w)
+    return out
+
+
 def api_tool(contract, service, mock_url, field_sources, call_vars, now_var, timeout_ms, description=None, guard=False,
-             node="assistant"):
+             node="assistant", consent=None):
     body, filled, from_call = body_schema(service["request_example"], field_sources, call_vars, service["name"])
     url = mock_url.rstrip("/") + "/" + contract["base_path"].strip("/") + "/" + service["name"]
     name = S.tool_name(service["name"])
@@ -199,7 +223,10 @@ def api_tool(contract, service, mock_url, field_sources, call_vars, now_var, tim
                              "headers": {"type": "object", "properties": {"Content-Type": {"type": "string", "default": "application/json"},
                                                                           "Accept": {"type": "string", "default": "application/json"}}},
                              "body": body}}},
-            "pre_process_code": (_const("NODE", node) + "GUARD = %s\n" % bool(guard) + "FROM_CALL = dict(%s)\n" % ", ".join(
+            "pre_process_code": (_const("NODE", node) + "GUARD = %s\n" % bool(guard)
+                                 + "YES = %r\nHEDGE = %r\n" % (words((consent or {}).get("clear_yes")) if guard else [],
+                                                               words((consent or {}).get("not_clear")) if guard else [])
+                                 + "FROM_CALL = dict(%s)\n" % ", ".join(
                 "%s=%s" % (k, json.dumps(v)) for k, v in sorted(from_call.items())) + PRE_HOOK),
             "post_process_code": _const("NOW_VAR", now_var) + _const("TOOL", name) + POST_HOOK}
     return tool, filled
@@ -249,7 +276,8 @@ def build(spec, contract, mock_url, slow_service_ms=30000):
     for s in contract["services"]:
         flag = flags.get(s["name"]) if isinstance(flags.get(s["name"]), dict) else {}
         guard = flag.get("changes_something") in (True, "true", "True")
-        tool, filled = api_tool(contract, s, mock_url, fields.get(s["name"]) or {}, call_vars, now_var, slow_service_ms, guard=guard)
+        tool, filled = api_tool(contract, s, mock_url, fields.get(s["name"]) or {}, call_vars, now_var, slow_service_ms, guard=guard,
+                                consent=wire.get("consent") if isinstance(wire.get("consent"), dict) else None)
         tools.append(tool)
         if guard:
             guarded.append(s["name"])
@@ -305,7 +333,8 @@ def build(spec, contract, mock_url, slow_service_ms=30000):
                      "transitions": [{"target_node": "assistant", "description": "always", "condition": {"operator": "always"}}]}
     wf["initial_node"] = "boot"
     return wf, {"start_service": start["name"] if start else "", "tools": [t["function"]["name"] for t in tools],
-                "endings": len(end_transitions), "consent_guard_on": guarded, "system_prompt_chars": len(system_prompt), "now_variable": now_var,
+                "endings": len(end_transitions), "consent_guard_on": guarded, "clear_yes": words((wire.get("consent") or {}).get("clear_yes") if isinstance(wire.get("consent"), dict) else []),
+                "not_clear": words((wire.get("consent") or {}).get("not_clear") if isinstance(wire.get("consent"), dict) else []), "system_prompt_chars": len(system_prompt), "now_variable": now_var,
                 "call_variables": call_vars, "example_variables": examples}
 
 

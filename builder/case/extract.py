@@ -82,6 +82,8 @@ Answer with one JSON object:
 {"language": "the language the assistant speaks with callers",
  "call_variables": [{"name": "exact variable name given to the assistant with every call", "meaning": "...", "example": "an example value from the text, or \\"\\""}],
  "services": {"<service name>": {"changes_something": true or false}},
+ "consent": {"clear_yes": ["up to 12 short words or phrases, in the callers' language, that are an unambiguous yes to a confirmation question; first the ones the text names"],
+             "not_clear": ["up to 15 words or phrases in that language that make an answer hedged, uncertain or conditional, so that it is not consent; first the ones the text names"]},
  "start_service": "the one service that must be called first in every call and needs only call variables and fixed values, or \\"\\"",
  "fields": {"<service name>": {"<field name inside data>": {"source": "call_variable | constant | conversation", "value": "the call variable name, or the fixed value", "note": "for conversation: where the value comes from, e.g. which earlier service result it is copied from, in one sentence"}}}}
 "changes_something" is true for a service that changes, books, cancels or sends something for the caller, false for one
