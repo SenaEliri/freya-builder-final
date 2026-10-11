@@ -8,7 +8,7 @@
 5. Destination for a caller asking about someone else's card: IVR login (analysis) or main menu (example 5).
 
 ## Missing input
-6. `2026-10-10-follow-up-session-transcript.txt` is named in my instructions but is not in the pack. Not read, not used.
+6. `2026-10-10-follow-up-session-transcript.txt` was added late: the submitted build's builder read it; I did not review it line by line, and `requirements-resolution.md` still marks its rules as unverified by me.
 7. `statement-debt-call-flow.pdf` was not read by me or by the builder (text files only).
 
 ## Known behaviour of the built agent (see `tests/reports/`)

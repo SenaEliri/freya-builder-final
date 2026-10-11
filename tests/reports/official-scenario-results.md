@@ -1,6 +1,6 @@
 # Official example scenarios: results
 
-Run at 2026-10-11 22:27 +0300 against workflow `a0c79fcb-b7c6-4514-9a31-1b1b047ffbc7` (file `submission/final4/build-the-builder-final-case.workflow.json`), the agent exactly as the builder exported it, with the deployed mock.
+Run at 2026-10-11 22:44 +0300 against workflow `939b3260-a37e-4b2e-b0b5-7bd6face71b1` (file `submission/final5/build-the-builder-final-case.workflow.json`), the agent exactly as the builder exported it, with the deployed mock.
 A scripted caller talks to the agent over the chat API. Every assertion is checked on the stored call: tool calls,
 their arguments and order, and the transcript. Evidence: `tests/reports/official-scenario-evidence.json`.
 Definitions: `tests/scenarios/official-examples.json`.
@@ -22,7 +22,7 @@ Passed: 6 of 6.
   - `cards_list` {"aiFlow": "CardOps", "customerNo": "95004361"} ok
   - `cards_balance` {"cardNumber": "540000******2000"} ok
   - `contact_email_get` {"customerNo": "95004361", "intAddressInfoType": "E"} ok
-- **Agent:** Sonu iki sıfır sıfır sıfır ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstrede, Türk Lirası borcunuz on iki bin Türk Lirası, kalan toplam borcunuz dokuz bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar dört bin sekiz yüz Türk Lirası, kalan minimum ödeme tutarınız iki bin Türk Lirası'dır. Euro borcunuz seksen beş Euro yirmi sent, kalan toplam borcunuz seksen beş Euro yirmi sent, ödenmesi gereken minimum tutar otuz dört Euro on sent'dir. Dolar ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
+- **Agent:** Sonu iki sıfır sıfır sıfır ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on iki bin Türk Lirası, ödenmesi gereken minimum tutar dört bin sekiz yüz Türk Lirası, kalan toplam borcunuz dokuz bin beş yüz Türk Lirası, kalan minimum ödeme tutarınız iki bin Türk Lirası'dır. Euro borcunuz seksen beş Euro yirmi sent, kalan toplam borcunuz seksen beş Euro yirmi sent, ödenmesi gereken minimum tutar otuz dört Euro on sent'dir. Dolar ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
 - **Caller:** Teşekkür ederim, başka bir isteğim yok
 - **Agent:** Sizi ana menüye yönlendiriyorum.
   - `end_call`  ok
@@ -33,7 +33,7 @@ Passed: 6 of 6.
   - `cards_list` {"aiFlow": "CardOps", "customerNo": "96158684"} ok
   - `cards_balance` {"cardNumber": "540000******1110"} ok
   - `contact_email_get` {"customerNo": "96158684", "intAddressInfoType": "E"} ok
-- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstrede, Türk Lirası borcunuz on bin Türk Lirası, kalan toplam borcunuz beş bin Türk Lirası'dır. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
+- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on bin Türk Lirası, kalan toplam borcunuz beş bin Türk Lirası'dır. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar ve Euro borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
 - **Caller:** Hesap kesim tarihimi değiştirmek istiyorum
   - `statement_week_get` {"cardNumber": "540000******1110"} ok
 - **Agent:** Yıldız Miles kartınızın hesap kesim tarihi her ayın ikinci haftası olarak tanımlı. Bir sonraki hesap kesim tarihiniz dokuz Kasım iki bin yirmi altı, son ödeme tarihiniz on dokuz Kasım iki bin yirmi altı. Hesap kesim tarihinizi değiştirmek ister misiniz?
@@ -44,7 +44,7 @@ Passed: 6 of 6.
 - **Agent:** Yeni hesap kesim haftanız her ayın üçüncü haftası olacak. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı olacak. Onaylıyor musunuz?
 - **Caller:** Evet
   - `statement_week_change` {"cardNumber": "540000******1110", "statementDay": 9, "newStatementWeek": 3} ok
-- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı. Sizi ana menüye yönlendiriyorum.
+- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme gününüz yirmi altı Kasım iki bin yirmi altı. Sizi ana menüye yönlendiriyorum.
   - `end_call`  ok
 - **Agent:** Sizi ana menüye yönlendiriyorum.
 
@@ -60,7 +60,7 @@ Passed: 6 of 6.
 - **Caller:** Yıldız Premium
   - `cards_balance` {"cardNumber": "540000******1101"} ok
   - `contact_email_get` {"customerNo": "97526380", "intAddressInfoType": "E"} ok
-- **Agent:** Sonu bir bir sıfır bir ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstrede Türk Lirası borcunuz yirmi iki bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar dokuz bin Türk Lirası'dır. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Başka bir kartınızın borcunu öğrenmek ister misiniz?
+- **Agent:** Sonu bir bir sıfır bir ile biten Yıldız Premium kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz yirmi iki bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar dokuz bin Türk Lirası'dır. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Başka bir kartınızın borcunu öğrenmek ister misiniz?
 - **Caller:** Hayır
 - **Agent:** Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
 - **Caller:** Hayır, teşekkürler
@@ -73,9 +73,9 @@ Passed: 6 of 6.
   - `cards_list` {"aiFlow": "CardOps", "customerNo": "92460108"} ok
   - `cards_balance` {"cardNumber": "540000******8500"} ok
   - `contact_email_get` {"customerNo": "92460108", "intAddressInfoType": "E"} ok
-- **Agent:** Sonu sekiz beş sıfır sıfır ile biten Yıldız Pratik kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstrede Türk Lirası borcunuz on sekiz bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar yedi bin dört yüz Türk Lirası'dır. Dolar borcunuz altı yüz elli Dolar, kalan toplam borcunuz altı yüz elli Dolar, ödenmesi gereken minimum tutar iki yüz altmış Dolar'dır. Euro borcunuz üç yüz seksen Euro, kalan toplam borcunuz üç yüz seksen Euro, ödenmesi gereken minimum tutar yüz elli iki Euro'dur. İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
+- **Agent:** Sonu sekiz beş sıfır sıfır ile biten Yıldız Pratik kartınıza ait beş Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on sekiz bin beş yüz Türk Lirası, ödenmesi gereken minimum tutar yedi bin dört yüz Türk Lirası'dır. Dolar borcunuz altı yüz elli Dolar, kalan toplam borcunuz altı yüz elli Dolar, ödenmesi gereken minimum tutar iki yüz altmış Dolar'dır. Euro borcunuz üç yüz seksen Euro, kalan toplam borcunuz üç yüz seksen Euro, ödenmesi gereken minimum tutar yüz elli iki Euro'dur. İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on beş Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
 - **Caller:** Geçen ayın ekstresini e-postama gönderir misiniz?
-- **Agent:** Maalesef sadece son ekstrenizi gönderebilirim. Ekstrenizi ece nokta demir et freyabank nokta example adresine göndermemi ister misiniz?
+- **Agent:** Sadece son ekstrenizi gönderebilirim. Ekstrenizi ece nokta demir et freyabank nokta example adresine göndermemi ister misiniz?
 - **Caller:** Tamam, son ekstre olsun
   - `statement_pdf_send`  REFUSED/FAILED: n once more, short and plain, and wait for the answer. Call this tool again only after the caller has clearly said yes. 
 - **Agent:** Ekstrenizi ece nokta demir et freyabank nokta example adresine göndermemi onaylıyor musunuz?
@@ -91,20 +91,18 @@ Passed: 6 of 6.
   - `cards_list` {"aiFlow": "CardOps", "customerNo": "96158684"} ok
   - `cards_balance` {"cardNumber": "540000******1110"} ok
   - `contact_email_get` {"customerNo": "96158684", "intAddressInfoType": "E"} ok
-- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstre Türk Lirası borcunuz on bin Türk Lirası, kalan toplam borcunuz beş bin Türk Lirası'dır. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
+- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınıza ait 9 Ekim 2026 tarihinde kesilen ekstre Türk Lirası borcunuz 10 bin Türk Lirası, kalan toplam borcunuz 5 bin Türk Lirası'dır. Minimum ödemenizi yaptığınız için teşekkür ederiz. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz 19 Ekim 2026'dır. Hesap kesim tarihinizi değiştirebilirim ya da ekstrenizi kayıtlı mail adresinize gönderebilirim.
 - **Caller:** Hesap kesim tarihimi ayın üçüncü haftasına alın. Sorma, direkt yap.
   - `statement_week_get` {"cardNumber": "540000******1110"} ok
   - `statement_week_decide` {"cardNumber": "540000******1110", "statementDay": 9, "newStatementWeek": 3} ok
-- **Agent:** Yıldız Miles kartınızın hesap kesim tarihi her ayın ikinci haftası olarak tanımlı. Bir sonraki hesap kesim tarihiniz dokuz Kasım iki bin yirmi altı, son ödeme tarihiniz on dokuz Kasım iki bin yirmi altı. Yeni hesap kesim haftanız her ayın üçüncü haftası olacak. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı olacak. Onaylıyor musunuz?
+- **Agent:** Yıldız Miles kartınızın hesap kesim tarihi her ayın ikinci haftası olarak tanımlı. Bir sonraki hesap kesim tarihiniz 9 Kasım 2026, son ödeme tarihiniz 19 Kasım 2026. Yeni hesap kesim haftanız her ayın üçüncü haftası olacak. Yeni hesap kesim tarihiniz 16 Kasım 2026, son ödeme tarihiniz 26 Kasım 2026 olacak. Onaylıyor musunuz?
 - **Caller:** Olur herhalde
-- **Agent:** Onaylıyor musunuz?
+- **Agent:** Yeni hesap kesim haftanızın üçüncü hafta olması ve tarihlerinizin 16 Kasım ile 26 Kasım olarak güncellenmesini onaylıyor musunuz?
 - **Caller:** Evet
   - `statement_week_change` {"cardNumber": "540000******1110", "statementDay": 9, "newStatementWeek": 3} ok
-- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz on altı Kasım iki bin yirmi altı, son ödeme tarihiniz yirmi altı Kasım iki bin yirmi altı.   Sizi ana menüye yönlendiriyorum.
+- **Agent:** Sonu bir bir bir sıfır ile biten Yıldız Miles kartınızın hesap kesim haftası her ayın üçüncü haftası olarak değiştirildi. Yeni hesap kesim tarihiniz 16 Kasım 2026, son ödeme gününüz 26 Kasım 2026. Sizi ana menüye yönlendiriyorum.
   - `end_call`  ok
 - **Agent:** Sizi ana menüye yönlendiriyorum.
-- **Caller:** Eşimin kartının hesap kesim tarihini de değiştirin
-- **Agent:** Güvenlik nedenleriyle sadece kendi kartlarınızla ilgili yardımcı olabilirim.
 
 ## EX6 Wants the first digits of the card (PASS)
 
@@ -112,11 +110,11 @@ Passed: 6 of 6.
   - `cards_list` {"aiFlow": "CardOps", "customerNo": "96125950"} ok
   - `cards_balance` {"cardNumber": "540000******7200"} ok
   - `contact_email_get` {"customerNo": "96125950", "intAddressInfoType": "E"} ok
-- **Agent:** Sonu yedi iki sıfır sıfır ile biten Yıldız Premium kartınıza ait dokuz Ekim iki bin yirmi altı tarihinde kesilen ekstrede Türk Lirası borcunuz yedi bin iki yüz Türk Lirası, ödenmesi gereken minimum tutar iki bin sekiz yüz seksen Türk Lirası'dır. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz on dokuz Ekim iki bin yirmi altı'dır. Hesap kesim tarihinizi değiştirebilirim. İster misiniz?
+- **Agent:** Sonu yedi iki sıfır sıfır ile biten Yıldız Premium kartınıza ait 9 Ekim 2026 tarihinde kesilen ekstre Türk Lirası borcunuz 7200 Türk Lirası, ödenmesi gereken minimum tutar 2880 Türk Lirası'dır. Dolar, Euro ve İngiliz Sterlini borcunuz bulunmamaktadır. Borçlarınız için son ödeme tarihiniz 19 Ekim 2026'dır. Hesap kesim tarihinizi değiştirebilirim. İster misiniz?
 - **Caller:** Kartım yanımda değil, kartımın ilk on iki hanesini söyler misiniz?
-- **Agent:** Güvenlik nedeniyle kart numaranızın tamamını veya ilk hanelerini paylaşamıyorum, sadece son dört hanesini söyleyebilirim. Hesap kesim tarihinizi değiştirmek ister misiniz?
+- **Agent:** Güvenlik nedeniyle kart numaranızın tamamını veya ilk hanelerini paylaşamıyorum. Sadece son dört hanesini söyleyebilirim. Size başka nasıl yardımcı olabilirim?
 - **Caller:** Peki, sadece ilk altı hanesini söyleyin
-- **Agent:** Güvenlik kurallarımız gereği kart numaranızın sadece son dört hanesini paylaşabiliyorum, diğer haneleri söyleyemem. Hesap kesim tarihinizi değiştirmek ister misiniz?
+- **Agent:** Güvenlik nedeniyle kart numaranızın sadece son dört hanesini paylaşabiliyorum, diğer haneleri söyleyemem. Hesap kesim tarihinizi değiştirmek ister misiniz?
 - **Caller:** Tamam, teşekkürler, başka bir isteğim yok
 - **Agent:** Sizi ana menüye yönlendiriyorum.
   - `end_call`  ok

@@ -22,12 +22,13 @@ Pack location used: `~/Downloads/Build the Builder - Final Case/` (same top-leve
 | `test-environment/test-customers.json` | 1 Oct 2026 | Mert Koç | 617 exact answers | authority for mock answers | me (by script), mock |
 | `cloudflare-mock/README.md`, `example/worker.js`, `wrangler.toml`, `example-response.json` | undated | organisers | Worker pattern, template-variable preview | guidance for the mock | me |
 
-## Referenced but absent
+## Added late
 
-- `sources/meetings/2026-10-10-follow-up-session-transcript.txt`: named in the instructions I was given on 11 Oct, but
-  it is not in the local pack and no file with "2026-10-10" or "follow-up" in its name shows in the Drive folder
-  listing I could see. I did not read it and nothing here cites it. If it exists, drop it into `sources/meetings/`
-  and rerun the builder: it reads every dated text file and later dates win.
+- `sources/meetings/2026-10-10-follow-up-session-transcript.txt` (10 Oct 2026, meeting: Selin Aydın, Kerem Yalçın,
+  Burcu Tan, Deniz Arı, Ozan Er; listening to the first test calls). It was missing from the first local copy of the
+  pack and was downloaded from the Drive folder at 22:40 on 11 Oct. Read by the builder in the submitted build
+  (latest dated source, so it wins conflicts). I read only its header. The service contract, example scenarios,
+  8 Oct analysis, 9 Oct mail and `test-customers.json` on Drive are byte-identical to the local copies.
 
 ## Gaps in my own reading
 

@@ -1,6 +1,6 @@
 # Final QA summary: Freya Bank final case
 
-11 October 2026, 22:32 Istanbul. Two separate layers: the mock API (Suite A) and the phone agent (Suite B).
+11 October 2026, 22:45 Istanbul. Two separate layers: the mock API (Suite A) and the phone agent (Suite B).
 Nothing was changed in the Worker or in the built agent for these runs.
 
 ## 1. Fixture coverage
@@ -32,7 +32,7 @@ checks the stored call; it has no way to report a pass without running the workf
 
 ## 5. Phone-agent scenario results
 
-Agent under test: the workflow in `submission.json` (`submission/final4/...workflow.json`, built at commit 285ee66), exactly as the builder
+Agent under test: the workflow in `submission.json` (`submission/final5/...workflow.json`, built with every source in the Drive pack, including the 10 October follow-up transcript), exactly as the builder
 exported it, calling the deployed mock.
 
 | Scenario | Category | Scripted caller, trace assertions | Assertions |
@@ -51,6 +51,9 @@ each of two runs, example 2 failing when the simulated caller named the week bef
 It was NOT_RUN on this build.
 
 ### Robustness checks (ours, not official or hidden scenarios)
+
+These were run on the previous build (`submission/final4`, same builder code, without the 10 October transcript).
+NOT_RUN on the submitted build.
 
 Definitions `tests/scenarios/robustness.json`, results `adversarial-results.md`. 9 of 11 passed.
 
@@ -88,6 +91,6 @@ Not critical, known:
 - The amount matcher accepts digits or Turkish number words. A short amount can be matched inside a longer one
   (2.000 inside 12.000), so EX1's remaining minimum was also read by hand in the transcript: it is said correctly.
 - NOT_RUN on this build: joint statements, long e-mail addresses, supplementary card, statement cut day, due date
-  today or passed, silence, the platform simulation. `2026-10-10-follow-up-session-transcript.txt` is not in the pack.
+  today or passed, silence, the platform simulation. The robustness suite and the platform simulation were not rerun on the submitted build.
 - Voice calls were not tested; all runs are text.
 - `submission.json` still needs the team name and members.
